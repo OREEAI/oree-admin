@@ -8,13 +8,13 @@ export function Topbar({ user }: { user: AuthUser | null }) {
   const { mutate: logout, isPending } = LogoutMutation();
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-navy-700 bg-navy-900 px-6">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-surface-softer bg-white px-6">
       <div className="flex items-center gap-3">
         <span className="rounded-md bg-coral px-2 py-1 font-code text-[0.6rem] font-bold uppercase tracking-[0.2em] text-white">
           Admin
         </span>
         {user && (
-          <span className="hidden text-xs text-navy-200 sm:inline">
+          <span className="hidden text-xs text-ink-muted sm:inline">
             {user.full_name || user.email}
           </span>
         )}
@@ -26,7 +26,7 @@ export function Topbar({ user }: { user: AuthUser | null }) {
           type="button"
           onClick={() => logout()}
           disabled={isPending}
-          className="rounded-lg border border-navy-600 bg-navy-800 px-3 py-1.5 text-xs font-medium text-navy-100 transition-colors hover:border-navy-500 hover:text-white disabled:cursor-not-allowed disabled:text-navy-300"
+          className="rounded-lg border border-surface-softer bg-white px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:border-ink-soft hover:text-ink disabled:cursor-not-allowed disabled:text-ink-soft"
         >
           {isPending ? "Signing out…" : "Log out"}
         </button>

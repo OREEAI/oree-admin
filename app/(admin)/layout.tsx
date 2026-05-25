@@ -61,7 +61,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-navy-900 text-navy-50">
+    <div className="flex h-screen overflow-hidden bg-surface-soft text-ink">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar user={userQuery.data} />
@@ -73,28 +73,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
 function AdminShellSkeleton() {
   return (
-    <div className="flex h-screen overflow-hidden bg-navy-900">
-      <div className="w-60 shrink-0 border-r border-navy-700 bg-navy-900 p-3">
-        <div className="mb-6 h-10 animate-pulse rounded-lg bg-navy-800" />
+    <div className="flex h-screen overflow-hidden bg-surface-soft">
+      <div className="w-60 shrink-0 border-r border-surface-softer bg-white p-3">
+        <div className="mb-6 h-10 animate-pulse rounded-lg bg-surface-soft" />
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-10 animate-pulse rounded-xl bg-navy-800" />
+            <div
+              key={i}
+              className="h-10 animate-pulse rounded-xl bg-surface-soft"
+            />
           ))}
         </div>
       </div>
       <div className="flex flex-1 flex-col">
-        <div className="flex h-16 items-center justify-between border-b border-navy-700 px-6">
-          <div className="h-6 w-24 animate-pulse rounded-md bg-navy-800" />
-          <div className="h-8 w-48 animate-pulse rounded-lg bg-navy-800" />
+        <div className="flex h-16 items-center justify-between border-b border-surface-softer bg-white px-6">
+          <div className="h-6 w-24 animate-pulse rounded-md bg-surface-soft" />
+          <div className="h-8 w-48 animate-pulse rounded-lg bg-surface-soft" />
         </div>
         <div className="flex-1 space-y-4 p-8">
-          <div className="h-9 w-64 animate-pulse rounded-lg bg-navy-800" />
-          <div className="h-5 w-96 animate-pulse rounded-lg bg-navy-800" />
+          <div className="h-9 w-64 animate-pulse rounded-lg bg-surface-softer" />
+          <div className="h-5 w-96 animate-pulse rounded-lg bg-surface-softer" />
           <div className="mt-6 grid grid-cols-3 gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="h-32 animate-pulse rounded-2xl bg-navy-800"
+                className="h-32 animate-pulse rounded-2xl border border-surface-softer bg-white"
               />
             ))}
           </div>

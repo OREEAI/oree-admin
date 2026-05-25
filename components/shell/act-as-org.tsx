@@ -52,11 +52,11 @@ export function ActAsOrg() {
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
-          "flex items-center gap-2 rounded-lg border border-navy-600 bg-navy-800 px-3 py-1.5 text-xs font-medium transition-colors hover:border-navy-500",
-          activeOrg ? "text-coral-200" : "text-navy-100",
+          "flex items-center gap-2 rounded-lg border border-surface-softer bg-white px-3 py-1.5 text-xs font-medium transition-colors hover:border-ink-soft",
+          activeOrg ? "text-coral-700" : "text-ink-muted",
         )}
       >
-        <span className="font-code text-[0.6rem] uppercase tracking-[0.16em] text-navy-300">
+        <span className="font-code text-[0.6rem] uppercase tracking-[0.16em] text-ink-soft">
           Act as
         </span>
         <span className="max-w-[12rem] truncate">
@@ -79,20 +79,20 @@ export function ActAsOrg() {
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-1 cursor-default"
           />
-          <div className="absolute right-0 z-2 mt-2 w-72 overflow-hidden rounded-xl border border-navy-600 bg-navy-800 shadow-soft-lift">
-            <div className="border-b border-navy-700 px-4 py-2.5">
-              <p className="font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-navy-300">
+          <div className="absolute right-0 z-2 mt-2 w-72 overflow-hidden rounded-xl border border-surface-softer bg-white shadow-soft-lift">
+            <div className="border-b border-surface-softer px-4 py-2.5">
+              <p className="font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
                 Impersonate an organisation
               </p>
             </div>
 
             <div className="max-h-72 overflow-y-auto py-1">
               {isLoading && (
-                <p className="px-4 py-3 text-xs text-navy-300">Loading orgs…</p>
+                <p className="px-4 py-3 text-xs text-ink-soft">Loading orgs…</p>
               )}
 
               {!isLoading && orgs.length === 0 && (
-                <p className="px-4 py-3 text-xs text-navy-300">
+                <p className="px-4 py-3 text-xs text-ink-soft">
                   No organisations available.
                 </p>
               )}
@@ -103,10 +103,10 @@ export function ActAsOrg() {
                   type="button"
                   onClick={() => handleSelect(org.id)}
                   className={cn(
-                    "flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors hover:bg-navy-700",
+                    "flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors hover:bg-surface-soft",
                     org.id === actingOrgId
-                      ? "text-coral-200"
-                      : "text-navy-100",
+                      ? "text-coral-700"
+                      : "text-ink",
                   )}
                 >
                   <span className="truncate">{org.organization_name}</span>
@@ -120,11 +120,11 @@ export function ActAsOrg() {
             </div>
 
             {actingOrgId && (
-              <div className="border-t border-navy-700 p-2">
+              <div className="border-t border-surface-softer p-2">
                 <button
                   type="button"
                   onClick={handleStop}
-                  className="w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-coral-200 transition-colors hover:bg-navy-700"
+                  className="w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-coral-700 transition-colors hover:bg-surface-soft"
                 >
                   Stop impersonating
                 </button>

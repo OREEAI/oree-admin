@@ -21,45 +21,41 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // Admin accent — a deliberately distinct violet so the internal
-        // console is never visually confused with the coral customer app.
         coral: {
-          DEFAULT: "#7C5CFF",
-          50: "#F1EEFF",
-          100: "#E2DBFF",
-          200: "#C4B6FF",
-          300: "#A690FF",
-          400: "#8E72FF",
-          500: "#7C5CFF",
-          600: "#5E3FE0",
-          700: "#472FB0",
-          800: "#32227E",
-          900: "#1F154F",
+          DEFAULT: "#F24E2E",
+          50: "#FFF5F2",
+          100: "#FFE4DC",
+          200: "#FFC3B3",
+          300: "#FF9E85",
+          400: "#F87457",
+          500: "#F24E2E",
+          600: "#D33A1C",
+          700: "#A92C13",
+          800: "#7E200C",
+          900: "#551507",
         },
-        // The shell chrome runs near-black so the admin app reads as a
-        // darker, more serious surface than the white customer dashboard.
         navy: {
-          DEFAULT: "#0A0E1A",
-          50: "#E7E9EF",
-          100: "#C5CAD7",
-          200: "#9097A9",
-          300: "#5E6478",
-          400: "#3A4054",
-          500: "#262B3D",
-          600: "#1A1E2E",
-          700: "#12162270",
-          800: "#0F1320",
-          900: "#0A0E1A",
+          DEFAULT: "#0B2740",
+          50: "#EEF3F8",
+          100: "#D3DDE9",
+          200: "#A8BAD0",
+          300: "#7D95B6",
+          400: "#52719C",
+          500: "#2F4E77",
+          600: "#1A3A5C",
+          700: "#102F4E",
+          800: "#0B2740",
+          900: "#061A2B",
         },
         ink: {
-          DEFAULT: "#0A0E1A",
-          muted: "#5E6478",
-          soft: "#9097A9",
+          DEFAULT: "#0B2740",
+          muted: "#6C7A86",
+          soft: "#9BA6AF",
         },
         surface: {
           DEFAULT: "#FFFFFF",
-          soft: "#0F1320",
-          softer: "#1A1E2E",
+          soft: "#F3F5F7",
+          softer: "#E3E7EB",
         },
         success: "#28C76F",
         warning: "#FF9F43",
@@ -82,16 +78,22 @@ const config: Config = {
       },
       backgroundImage: {
         "coral-gradient":
-          "linear-gradient(135deg, #A690FF 0%, #7C5CFF 50%, #5E3FE0 100%)",
+          "linear-gradient(135deg, #FF9E85 0%, #F24E2E 50%, #D33A1C 100%)",
         "navy-gradient":
-          "linear-gradient(135deg, #1A1E2E 0%, #0F1320 50%, #0A0E1A 100%)",
+          "linear-gradient(135deg, #1A3A5C 0%, #0B2740 50%, #061A2B 100%)",
+        "conic-glow":
+          "conic-gradient(from 180deg at 50% 50%, #F24E2E 0deg, #FF9F43 90deg, #F24E2E 180deg, #D33A1C 270deg, #F24E2E 360deg)",
+        "radial-glow":
+          "radial-gradient(ellipse at center, rgba(242, 78, 46, 0.15) 0%, rgba(255, 159, 67, 0.08) 40%, transparent 70%)",
+        "benefit-card":
+          "linear-gradient(180deg, rgba(242, 78, 46, 0.03) 0%, rgba(11, 39, 64, 0.02) 100%)",
       },
       boxShadow: {
-        "coral-glow": "0 0 80px rgba(124, 92, 255, 0.35)",
+        "coral-glow": "0 0 80px rgba(242, 78, 46, 0.35)",
         "soft-lift":
-          "0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.35)",
+          "0 1px 2px rgba(11, 39, 64, 0.04), 0 8px 24px rgba(11, 39, 64, 0.06)",
         "card-hover":
-          "0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 40px rgba(124, 92, 255, 0.18)",
+          "0 1px 2px rgba(11, 39, 64, 0.06), 0 16px 40px rgba(242, 78, 46, 0.08)",
       },
       transitionTimingFunction: {
         "smooth-out": "cubic-bezier(0.22, 1, 0.36, 1)",

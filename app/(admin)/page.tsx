@@ -1,10 +1,10 @@
 export default function AdminDashboardPage() {
   return (
     <div>
-      <h1 className="text-[2rem] font-semibold leading-tight tracking-tight text-white">
+      <h1 className="text-[2rem] font-semibold leading-tight tracking-tight text-ink">
         Admin console
       </h1>
-      <p className="mt-3 text-sm text-navy-200">
+      <p className="mt-3 text-sm text-ink-muted">
         More coming soon.
       </p>
 
@@ -12,12 +12,12 @@ export default function AdminDashboardPage() {
         {["Orgs", "Content", "Cleanup"].map((label) => (
           <div
             key={label}
-            className="rounded-2xl border border-navy-700 bg-navy-800 p-6"
+            className="rounded-2xl border border-surface-softer bg-white p-6 shadow-soft-lift"
           >
             <p className="font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-coral">
               {label}
             </p>
-            <p className="mt-2 text-sm text-navy-200">Placeholder.</p>
+            <p className="mt-2 text-sm text-ink-muted">Placeholder.</p>
           </div>
         ))}
       </div>
