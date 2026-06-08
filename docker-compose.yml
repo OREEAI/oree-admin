@@ -1,0 +1,26 @@
+services:
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://api.oreeai.com
+    container_name: oree-admin
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=https://api.oreeai.com
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.oree-admin.rule=Host(`admin.oreeai.com`)"
+      - "traefik.http.routers.oree-admin.entrypoints=https"
+      - "traefik.http.routers.oree-admin.tls=true"
+      - "traefik.http.routers.oree-admin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.oree-admin.loadbalancer.server.port=3000"
+    networks:
+      - coolify
+
+networks:
+  coolify:
+    external: true
