@@ -4,19 +4,33 @@ import { apiClient, unwrapApiEnvelope } from "@/service/api";
 export type AdminOrg = {
   id: string;
   organization_name: string;
+  tier?: string;
+  status?: string;
 };
 
+// Mirror payments.enums.SubscriptionTierChoices (backend source of truth).
+export const SUBSCRIPTION_TIERS = [
+  "starter",
+  "professional",
+  "business",
+  "enterprise",
+  "custom",
+] as const;
+export type SubscriptionTier = (typeof SUBSCRIPTION_TIERS)[number];
+
+// Mirror payments.enums.Currencies.
+export const CURRENCIES = ["gbp", "usd", "eur"] as const;
+export type Currency = (typeof CURRENCIES)[number];
+
+// Mirror payments.enums.RefundMethod.
+export const REFUND_METHODS = ["refund", "balance_credit"] as const;
+export type RefundMethod = (typeof REFUND_METHODS)[number];
+
 /**
- * List every organisation for the "Act as org" switcher.
+ * List every organisation for the "Act as org" switcher and the Orgs list.
  *
- * TODO(backend): there is currently NO cross-org admin list endpoint.
- * `GET /api/organization` only returns the requesting user's own org, and
- * the only place to see all orgs today is Django admin at `/admin/`. Once a
- * super-admin "list all orgs" endpoint exists, point this at it (expected
- * shape below) and delete the stub fallback.
- *
- * Expected endpoint: GET /api/admin/organizations
- * Expected payload : { data: AdminOrg[] } | AdminOrg[]
+ * Endpoint: GET /api/admin/organizations  (super-admin only)
+ * Payload : { data: AdminOrg[] } | AdminOrg[]
  */
 const ADMIN_ORGS_ENDPOINT = "/api/admin/organizations";
 
@@ -32,9 +46,78 @@ export async function GetAdminOrgsApi(): Promise<AdminOrg[]> {
     );
     return unwrapApiEnvelope(data);
   } catch {
-    // The admin orgs endpoint does not exist yet — fall back to a clearly
-    // labelled stub so the switcher's selection behaviour is still testable.
-    // TODO(backend): remove once the real endpoint ships.
+    // The admin orgs endpoint is unreachable — fall back to a clearly
+    // labelled stub so the switcher's selection behaviour stays testable.
     return STUB_ORGS;
   }
+}
+
+/**
+ * Single org — there is no dedicated detail endpoint yet, so resolve it
+ * from the list. Cheap (the list is small) and keeps one source of truth.
+ */
+export async function GetAdminOrgApi(orgId: string): Promise<AdminOrg | null> {
+  const orgs = await GetAdminOrgsApi();
+  return orgs.find((o) => o.id === orgId) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Tier override + refund (C9) — backed by payments.AdminOverrideViewSet:
+//   POST /api/payments/admin/orgs/<id>/override-tier
+//   POST /api/payments/admin/orgs/<id>/refund
+// ---------------------------------------------------------------------------
+
+export type TierOverridePayload = {
+  tier: SubscriptionTier;
+  reason: string;
+  // ISO 8601; omit/null for a permanent override (cleared by the next
+  // Stripe subscription webhook).
+  expires_at?: string | null;
+};
+
+export type TierOverrideResult = {
+  subscription_id: string;
+  tier: string;
+  overrides: unknown;
+  entitlements: unknown;
+};
+
+export async function OverrideTierApi(
+  orgId: string,
+  payload: TierOverridePayload,
+): Promise<TierOverrideResult> {
+  const { data } = await apiClient.post<
+    TierOverrideResult | ApiEnvelope<TierOverrideResult>
+  >(`/api/payments/admin/orgs/${orgId}/override-tier`, payload);
+  return unwrapApiEnvelope(data);
+}
+
+export type RefundPayload = {
+  // Minor units (pence/cents) — the modal converts from major units.
+  amount_minor: number;
+  currency: Currency;
+  reason: string;
+  method: RefundMethod;
+  // Required by the backend only when method === "refund".
+  transaction_id?: string | null;
+};
+
+export type RefundResult = {
+  transaction_id: string;
+  transaction_type: string;
+  status: string;
+  amount: string | number;
+  currency: string;
+  provider_reference: string | null;
+};
+
+export async function RefundApi(
+  orgId: string,
+  payload: RefundPayload,
+): Promise<RefundResult> {
+  const { data } = await apiClient.post<RefundResult | ApiEnvelope<RefundResult>>(
+    `/api/payments/admin/orgs/${orgId}/refund`,
+    payload,
+  );
+  return unwrapApiEnvelope(data);
 }
