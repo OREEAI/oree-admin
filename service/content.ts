@@ -77,7 +77,11 @@ export async function ListPostsApi(status?: PostStatus): Promise<BlogPost[]> {
   const { data } = await apiClient.get<BlogPost[] | ApiEnvelope<BlogPost[]>>(POSTS, {
     params: { paginate: "false", ...(status ? { status } : {}) },
   });
-  return unwrapApiEnvelope(data);
+  // handle_response OMITS the `data` key when the list is empty (`if data:`),
+  // so unwrapApiEnvelope can hand back a non-array — coerce so callers can
+  // always .map() safely.
+  const rows = unwrapApiEnvelope(data);
+  return Array.isArray(rows) ? rows : [];
 }
 
 export async function GetPostApi(slug: string): Promise<BlogPost> {
@@ -126,5 +130,6 @@ export async function ListAuthorsApi(): Promise<BlogAuthor[]> {
     AUTHORS,
     { params: { paginate: "false" } },
   );
-  return unwrapApiEnvelope(data);
+  const rows = unwrapApiEnvelope(data);
+  return Array.isArray(rows) ? rows : [];
 }

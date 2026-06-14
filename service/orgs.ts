@@ -44,7 +44,10 @@ export async function GetAdminOrgsApi(): Promise<AdminOrg[]> {
     const { data } = await apiClient.get<AdminOrg[] | ApiEnvelope<AdminOrg[]>>(
       ADMIN_ORGS_ENDPOINT,
     );
-    return unwrapApiEnvelope(data);
+    // handle_response omits the `data` key for an empty list, so coerce to
+    // an array rather than hand back the bare envelope.
+    const rows = unwrapApiEnvelope(data);
+    return Array.isArray(rows) ? rows : [];
   } catch {
     // The admin orgs endpoint is unreachable — fall back to a clearly
     // labelled stub so the switcher's selection behaviour stays testable.
