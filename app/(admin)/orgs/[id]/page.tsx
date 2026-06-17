@@ -10,10 +10,12 @@ import {
   CURRENCIES,
   type Currency,
   GetAdminOrgApi,
+  type LeadCapResult,
   OverrideTierApi,
   REFUND_METHODS,
   RefundApi,
   type RefundMethod,
+  SetLeadCapApi,
   SUBSCRIPTION_TIERS,
   type SubscriptionTier,
   type TierOverrideResult,
@@ -28,6 +30,7 @@ export default function OrgDetailPage() {
 
   const [tierOpen, setTierOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
+  const [capOpen, setCapOpen] = useState(false);
 
   const orgQuery = useQuery({
     queryKey: [rqKeys.orgs, orgId],
@@ -85,6 +88,12 @@ export default function OrgDetailPage() {
               actionLabel="Issue refund"
               onClick={() => setRefundOpen(true)}
             />
+            <ActionCard
+              title="Monthly lead cap"
+              description="Override how many leads this org can source per month, independent of its tier default. Use for custom accounts that need more headroom."
+              actionLabel="Set lead cap"
+              onClick={() => setCapOpen(true)}
+            />
           </div>
         </>
       )}
@@ -103,6 +112,10 @@ export default function OrgDetailPage() {
 
       {refundOpen && org && (
         <RefundModal orgId={orgId} onClose={() => setRefundOpen(false)} />
+      )}
+
+      {capOpen && org && (
+        <LeadCapModal orgId={orgId} onClose={() => setCapOpen(false)} />
       )}
     </div>
   );
@@ -503,6 +516,79 @@ function RefundModal({
             </GhostButton>
             <PrimaryButton type="submit" disabled={!canSubmit}>
               {mut.isPending ? "Processing…" : "Issue refund"}
+            </PrimaryButton>
+          </div>
+        </form>
+      )}
+    </ModalShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Monthly lead cap modal
+// ---------------------------------------------------------------------------
+
+function LeadCapModal({ orgId, onClose }: { orgId: string; onClose: () => void }) {
+  const [value, setValue] = useState("");
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<LeadCapResult | null>(null);
+
+  const parsed = Number.parseInt(value, 10);
+  const valid = Number.isFinite(parsed) && parsed >= 0;
+
+  const mut = useMutation({
+    mutationFn: () => SetLeadCapApi(orgId, parsed),
+    onMutate: () => setError(""),
+    onSuccess: setResult,
+    onError: (e) => setError(getApiErrorMessage(e, "Couldn't set the lead cap.")),
+  });
+
+  return (
+    <ModalShell title="Monthly lead cap" onClose={onClose}>
+      {result ? (
+        <div>
+          <p className="rounded-xl border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
+            Monthly lead cap set to <strong>{result.leads_per_month.toLocaleString()}</strong>.
+          </p>
+          <div className="mt-6 flex justify-end">
+            <PrimaryButton onClick={onClose}>Done</PrimaryButton>
+          </div>
+        </div>
+      ) : (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (valid && !mut.isPending) mut.mutate();
+          }}
+        >
+          <div>
+            <label className={labelCls} htmlFor="cap">
+              Leads per month
+            </label>
+            <input
+              id="cap"
+              type="number"
+              min="0"
+              step="1"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="e.g. 2000"
+              className={inputCls}
+            />
+            <p className="mt-1 text-[0.7rem] text-ink-soft">
+              Overrides the tier default. Set <strong>0</strong> to clear the
+              override and fall back to the tier&apos;s cap.
+            </p>
+          </div>
+
+          {error && <p className="mt-4 text-sm text-coral">{error}</p>}
+
+          <div className="mt-6 flex items-center justify-end gap-3">
+            <GhostButton onClick={onClose} disabled={mut.isPending}>
+              Cancel
+            </GhostButton>
+            <PrimaryButton type="submit" disabled={!valid || mut.isPending}>
+              {mut.isPending ? "Saving…" : "Set cap"}
             </PrimaryButton>
           </div>
         </form>

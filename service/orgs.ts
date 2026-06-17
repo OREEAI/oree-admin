@@ -124,3 +124,24 @@ export async function RefundApi(
   );
   return unwrapApiEnvelope(data);
 }
+
+export type LeadCapResult = {
+  subscription_id: string;
+  leads_per_month: number;
+};
+
+/**
+ * Set a per-org monthly lead cap (overrides the tier default). 0 clears the
+ * override and falls back to the tier default.
+ * POST /api/payments/admin/orgs/<id>/lead-cap
+ */
+export async function SetLeadCapApi(
+  orgId: string,
+  leadsPerMonth: number,
+): Promise<LeadCapResult> {
+  const { data } = await apiClient.post<LeadCapResult | ApiEnvelope<LeadCapResult>>(
+    `/api/payments/admin/orgs/${orgId}/lead-cap`,
+    { leads_per_month: leadsPerMonth },
+  );
+  return unwrapApiEnvelope(data);
+}
