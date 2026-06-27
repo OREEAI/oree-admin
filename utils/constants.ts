@@ -7,6 +7,7 @@ export const rqKeys = {
   user: "user",
   session: "session",
   orgs: "orgs",
+  adminUsers: "admin-users",
 };
 
 // The cookie key the topbar "Act as org" switcher writes. Set on the

@@ -7,6 +7,7 @@ import {
   FiGrid,
   FiHome,
   FiTrash2,
+  FiUsers,
   FiZap,
 } from "react-icons/fi";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/", icon: FiHome },
   { label: "Orgs", href: "/orgs", icon: FiGrid },
+  { label: "Users", href: "/users", icon: FiUsers },
   { label: "Content", href: "/content", icon: FiActivity },
   { label: "Cleanup", href: "/cleanup", icon: FiTrash2 },
   { label: "Webhooks", href: "/webhooks", icon: FiZap },
