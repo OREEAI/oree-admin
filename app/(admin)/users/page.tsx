@@ -12,7 +12,7 @@ export default function UsersPage() {
 
   const usersQuery = useQuery({
     queryKey: [rqKeys.adminUsers],
-    queryFn: GetAdminUsersApi,
+    queryFn: () => GetAdminUsersApi(),
     staleTime: 5 * 60_000,
   });
 

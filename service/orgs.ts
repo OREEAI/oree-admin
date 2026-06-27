@@ -64,6 +64,46 @@ export async function GetAdminOrgApi(orgId: string): Promise<AdminOrg | null> {
   return orgs.find((o) => o.id === orgId) ?? null;
 }
 
+// Full org detail (info + counts + subscription) for the org page.
+// Endpoint: GET /api/admin/organizations/<id>
+export type AdminOrgDetail = AdminOrg & {
+  created_at?: string;
+  lead_source_provider?: string;
+  content_generation_model?: string;
+  assistant_model?: string;
+  monthly_lead_limit?: number;
+  leads_used_this_month?: number;
+  daily_email_limit?: number;
+  subscription?: {
+    tier?: string;
+    status?: string;
+    seats?: number | null;
+    current_period_end?: string | null;
+  };
+  counts?: {
+    users?: number;
+    active_users?: number;
+    leads?: number;
+    mailboxes?: number;
+    domains?: number;
+    icps?: number;
+  };
+};
+
+export async function GetAdminOrgDetailApi(
+  orgId: string,
+): Promise<AdminOrgDetail | null> {
+  try {
+    const { data } = await apiClient.get<
+      AdminOrgDetail | ApiEnvelope<AdminOrgDetail>
+    >(`${ADMIN_ORGS_ENDPOINT}/${orgId}`);
+    return unwrapApiEnvelope(data) as AdminOrgDetail;
+  } catch {
+    // Fall back to the list-derived shape so the page still renders.
+    return GetAdminOrgApi(orgId);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Tier override + refund (C9) — backed by payments.AdminOverrideViewSet:
 //   POST /api/payments/admin/orgs/<id>/override-tier

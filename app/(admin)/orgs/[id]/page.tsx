@@ -9,7 +9,7 @@ import { getApiErrorMessage } from "@/service/api";
 import {
   CURRENCIES,
   type Currency,
-  GetAdminOrgApi,
+  GetAdminOrgDetailApi,
   type LeadCapResult,
   OverrideTierApi,
   REFUND_METHODS,
@@ -21,6 +21,7 @@ import {
   type TierOverrideResult,
   type RefundResult,
 } from "@/service/orgs";
+import { GetAdminUsersApi } from "@/service/users";
 import { rqKeys } from "@/utils/constants";
 import { StatusBadge, TierBadge } from "../badges";
 
@@ -34,11 +35,18 @@ export default function OrgDetailPage() {
 
   const orgQuery = useQuery({
     queryKey: [rqKeys.orgs, orgId],
-    queryFn: () => GetAdminOrgApi(orgId),
+    queryFn: () => GetAdminOrgDetailApi(orgId),
+    staleTime: 5 * 60_000,
+  });
+
+  const membersQuery = useQuery({
+    queryKey: [rqKeys.adminUsers, orgId],
+    queryFn: () => GetAdminUsersApi(orgId),
     staleTime: 5 * 60_000,
   });
 
   const org = orgQuery.data;
+  const members = membersQuery.data ?? [];
 
   return (
     <div>
@@ -75,7 +83,94 @@ export default function OrgDetailPage() {
             </div>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Counts */}
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <Stat label="Users" value={org.counts?.users} />
+            <Stat label="Active" value={org.counts?.active_users} />
+            <Stat label="Leads" value={org.counts?.leads} />
+            <Stat label="Mailboxes" value={org.counts?.mailboxes} />
+            <Stat label="Domains" value={org.counts?.domains} />
+            <Stat label="ICPs" value={org.counts?.icps} />
+          </div>
+
+          {/* Overview */}
+          <div className="mt-6 rounded-2xl border border-surface-softer bg-white p-6 shadow-soft-lift">
+            <p className="font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-coral">
+              Overview
+            </p>
+            <dl className="mt-4 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+              <Info
+                label="Subscription"
+                value={`${org.subscription?.tier || org.tier || "—"} · ${org.subscription?.status || "—"}`}
+              />
+              <Info label="Seats" value={org.subscription?.seats ?? "—"} />
+              <Info
+                label="Monthly lead cap"
+                value={
+                  org.monthly_lead_limit != null
+                    ? `${(org.leads_used_this_month ?? 0).toLocaleString()} / ${org.monthly_lead_limit.toLocaleString()}`
+                    : "—"
+                }
+              />
+              <Info label="Daily email limit" value={org.daily_email_limit ?? "—"} />
+              <Info label="Lead source" value={org.lead_source_provider || "—"} />
+              <Info label="Content model" value={org.content_generation_model || "—"} />
+              <Info label="Assistant model" value={org.assistant_model || "—"} />
+              <Info
+                label="Created"
+                value={org.created_at ? new Date(org.created_at).toLocaleDateString() : "—"}
+              />
+            </dl>
+          </div>
+
+          {/* Members */}
+          <div className="mt-6 overflow-hidden rounded-2xl border border-surface-softer bg-white shadow-soft-lift">
+            <p className="px-6 py-4 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-coral">
+              Members ({members.length})
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-y border-surface-softer bg-surface-soft/50">
+                    <Th className="pl-6">User</Th>
+                    <Th>Role</Th>
+                    <Th>Subscription</Th>
+                    <Th className="pr-6">Status</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {members.map((u) => (
+                    <tr key={u.id} className="border-b border-surface-softer/60">
+                      <td className="py-3 pl-6 pr-4">
+                        <div className="font-medium text-ink">{u.full_name || u.email}</div>
+                        {u.full_name ? <div className="text-xs text-ink-soft">{u.email}</div> : null}
+                      </td>
+                      <td className="py-3 pr-4 text-ink-muted">{u.role}</td>
+                      <td className="py-3 pr-4">
+                        <TierBadge tier={u.tier} />
+                      </td>
+                      <td className="py-3 pr-6">
+                        <StatusBadge status={u.status} />
+                      </td>
+                    </tr>
+                  ))}
+                  {members.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-8 text-center text-sm text-ink-soft">
+                        {membersQuery.isPending ? "Loading members…" : "No users in this org."}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <p className="mt-8 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+            Actions
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <ActionCard
               title="Override tier"
               description="Manually set this org's subscription tier. Respected immediately and cleared by the next Stripe webhook or the optional expiry."
@@ -146,6 +241,46 @@ function ActionCard({
         {actionLabel}
       </button>
     </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value?: number }) {
+  return (
+    <div className="rounded-xl border border-surface-softer bg-white px-4 py-3 shadow-soft-lift">
+      <p className="font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-ink-soft">
+        {label}
+      </p>
+      <p className="mt-1 text-xl font-semibold text-ink">
+        {value != null ? value.toLocaleString() : "—"}
+      </p>
+    </div>
+  );
+}
+
+function Info({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-ink-soft">
+        {label}
+      </dt>
+      <dd className="mt-0.5 text-sm text-ink">{value}</dd>
+    </div>
+  );
+}
+
+function Th({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <th
+      className={`py-2.5 text-left font-code text-[0.6rem] font-bold uppercase tracking-[0.15em] text-ink-soft ${className}`}
+    >
+      {children}
+    </th>
   );
 }
 

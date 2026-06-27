@@ -22,9 +22,12 @@ export type AdminUser = {
  */
 const ADMIN_USERS_ENDPOINT = "/api/admin/users";
 
-export async function GetAdminUsersApi(): Promise<AdminUser[]> {
+export async function GetAdminUsersApi(orgId?: string): Promise<AdminUser[]> {
+  const url = orgId
+    ? `${ADMIN_USERS_ENDPOINT}?organization_id=${encodeURIComponent(orgId)}`
+    : ADMIN_USERS_ENDPOINT;
   const { data } = await apiClient.get<AdminUser[] | ApiEnvelope<AdminUser[]>>(
-    ADMIN_USERS_ENDPOINT,
+    url,
   );
   // handle_response omits the `data` key for an empty list, so coerce to an
   // array rather than hand back the bare envelope.
