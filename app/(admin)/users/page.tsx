@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -79,9 +80,9 @@ export default function UsersPage() {
                     className="border-b border-surface-softer/60 transition-colors hover:bg-surface-soft/40"
                   >
                     <td className="py-3 pl-6 pr-4">
-                      <div className="font-medium text-ink">
+                      <Link href={`/users/${u.id}`} className="font-medium text-ink hover:text-coral">
                         {u.full_name || u.email}
-                      </div>
+                      </Link>
                       {u.full_name ? (
                         <div className="text-xs text-ink-soft">{u.email}</div>
                       ) : null}

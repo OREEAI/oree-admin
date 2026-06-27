@@ -22,6 +22,56 @@ export type AdminUser = {
  */
 const ADMIN_USERS_ENDPOINT = "/api/admin/users";
 
+export type AdminUserActivity = {
+  user?: { last_login?: string | null; created_at?: string | null };
+  window_days?: number;
+  stats?: {
+    leads_assigned_total?: number;
+    leads_assigned_window?: number;
+    leads_in_sequence?: number;
+    leads_replied?: number;
+    emails_sent_window?: number;
+    emails_opened_window?: number;
+    emails_replied_window?: number;
+    linkedin_actions_window?: number;
+    notes_window?: number;
+    recordings_total?: number;
+  };
+  mailboxes?: {
+    id: string;
+    email_address: string;
+    provider: string;
+    status: string;
+    daily_send_count: number;
+    daily_send_limit: number;
+  }[];
+  icps?: { id: string; name: string }[];
+  recent_activity?: {
+    kind: string;
+    title: string;
+    summary: string;
+    occurred_at?: string | null;
+  }[];
+};
+
+export type AdminUserDetail = AdminUser & {
+  created_at?: string | null;
+  last_login?: string | null;
+  monthly_lead_limit?: number | null;
+  leads_used_this_month?: number;
+  activity?: AdminUserActivity | null;
+};
+
+// Endpoint: GET /api/admin/users/<id>
+export async function GetAdminUserDetailApi(
+  userId: string,
+): Promise<AdminUserDetail | null> {
+  const { data } = await apiClient.get<
+    AdminUserDetail | ApiEnvelope<AdminUserDetail>
+  >(`${ADMIN_USERS_ENDPOINT}/${userId}`);
+  return unwrapApiEnvelope(data) as AdminUserDetail;
+}
+
 /**
  * Edit a user's tier (sets their cap) and/or a custom monthly lead cap.
  * Endpoint: PATCH /api/admin/users/<id>

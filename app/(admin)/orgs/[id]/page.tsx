@@ -138,7 +138,9 @@ export default function OrgDetailPage() {
                   {members.map((u) => (
                     <tr key={u.id} className="border-b border-surface-softer/60">
                       <td className="py-3 pl-6 pr-4">
-                        <div className="font-medium text-ink">{u.full_name || u.email}</div>
+                        <Link href={`/users/${u.id}`} className="font-medium text-ink hover:text-coral">
+                          {u.full_name || u.email}
+                        </Link>
                         {u.full_name ? <div className="text-xs text-ink-soft">{u.email}</div> : null}
                       </td>
                       <td className="py-3 pr-4 text-ink-muted">{u.role}</td>
