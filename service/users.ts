@@ -22,6 +22,25 @@ export type AdminUser = {
  */
 const ADMIN_USERS_ENDPOINT = "/api/admin/users";
 
+/**
+ * Edit a user's tier (sets their cap) and/or a custom monthly lead cap.
+ * Endpoint: PATCH /api/admin/users/<id>
+ */
+export async function UpdateAdminUserApi(
+  userId: string,
+  payload: { tier?: string; monthly_lead_limit?: number | null },
+): Promise<{ id: string; tier: string | null; monthly_lead_limit: number | null }> {
+  const { data } = await apiClient.patch<
+    | { id: string; tier: string | null; monthly_lead_limit: number | null }
+    | ApiEnvelope<{ id: string; tier: string | null; monthly_lead_limit: number | null }>
+  >(`${ADMIN_USERS_ENDPOINT}/${userId}`, payload);
+  return unwrapApiEnvelope(data) as {
+    id: string;
+    tier: string | null;
+    monthly_lead_limit: number | null;
+  };
+}
+
 export async function GetAdminUsersApi(orgId?: string): Promise<AdminUser[]> {
   const url = orgId
     ? `${ADMIN_USERS_ENDPOINT}?organization_id=${encodeURIComponent(orgId)}`

@@ -21,7 +21,7 @@ import {
   type TierOverrideResult,
   type RefundResult,
 } from "@/service/orgs";
-import { GetAdminUsersApi } from "@/service/users";
+import { GetAdminUsersApi, UpdateAdminUserApi } from "@/service/users";
 import { rqKeys } from "@/utils/constants";
 import { StatusBadge, TierBadge } from "../badges";
 
@@ -105,12 +105,8 @@ export default function OrgDetailPage() {
               />
               <Info label="Seats" value={org.subscription?.seats ?? "—"} />
               <Info
-                label="Monthly lead cap"
-                value={
-                  org.monthly_lead_limit != null
-                    ? `${(org.leads_used_this_month ?? 0).toLocaleString()} / ${org.monthly_lead_limit.toLocaleString()}`
-                    : "—"
-                }
+                label="Org lead capacity (sum of users)"
+                value={`${(org.lead_capacity?.total_used ?? 0).toLocaleString()} / ${(org.lead_capacity?.total_cap ?? 0).toLocaleString()}`}
               />
               <Info label="Daily email limit" value={org.daily_email_limit ?? "—"} />
               <Info label="Lead source" value={org.lead_source_provider || "—"} />
@@ -147,7 +143,14 @@ export default function OrgDetailPage() {
                       </td>
                       <td className="py-3 pr-4 text-ink-muted">{u.role}</td>
                       <td className="py-3 pr-4">
-                        <TierBadge tier={u.tier} />
+                        <MemberTierSelect
+                          userId={u.id}
+                          tier={u.tier}
+                          onSaved={() => {
+                            membersQuery.refetch();
+                            orgQuery.refetch();
+                          }}
+                        />
                       </td>
                       <td className="py-3 pr-6">
                         <StatusBadge status={u.status} />
@@ -281,6 +284,41 @@ function Th({
     >
       {children}
     </th>
+  );
+}
+
+function MemberTierSelect({
+  userId,
+  tier,
+  onSaved,
+}: {
+  userId: string;
+  tier?: string;
+  onSaved: () => void;
+}) {
+  // Assignable tiers (custom isn't directly assignable to a user).
+  const options = SUBSCRIPTION_TIERS.filter((t) => t !== "custom");
+  const current = options.find((t) => t === (tier ?? "").toLowerCase()) ?? "";
+  const mut = useMutation({
+    mutationFn: (newTier: string) => UpdateAdminUserApi(userId, { tier: newTier }),
+    onSuccess: onSaved,
+  });
+  return (
+    <select
+      value={current}
+      disabled={mut.isPending}
+      onChange={(e) => mut.mutate(e.target.value)}
+      className="rounded-lg border border-surface-softer bg-white px-2 py-1 text-xs text-ink focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20 disabled:opacity-50"
+    >
+      <option value="" disabled>
+        Set tier…
+      </option>
+      {options.map((t) => (
+        <option key={t} value={t}>
+          {t[0].toUpperCase() + t.slice(1)}
+        </option>
+      ))}
+    </select>
   );
 }
 

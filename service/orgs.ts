@@ -80,6 +80,8 @@ export type AdminOrgDetail = AdminOrg & {
     seats?: number | null;
     current_period_end?: string | null;
   };
+  // Org capacity = sum of users' caps + usage (no separate org cap).
+  lead_capacity?: { total_cap?: number; total_used?: number };
   counts?: {
     users?: number;
     active_users?: number;
