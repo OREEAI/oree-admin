@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getApiErrorMessage } from "@/service/api";
 import {
@@ -11,11 +11,14 @@ import {
   type Currency,
   GetAdminOrgDetailApi,
   type LeadCapResult,
+  LEAD_SOURCES,
+  type LeadSource,
   OverrideTierApi,
   REFUND_METHODS,
   RefundApi,
   type RefundMethod,
   SetLeadCapApi,
+  SetLeadSourceApi,
   SUBSCRIPTION_TIERS,
   type SubscriptionTier,
   type TierOverrideResult,
@@ -28,6 +31,7 @@ import { StatusBadge, TierBadge } from "../badges";
 export default function OrgDetailPage() {
   const params = useParams<{ id: string }>();
   const orgId = params.id;
+  const queryClient = useQueryClient();
 
   const [tierOpen, setTierOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
@@ -109,7 +113,18 @@ export default function OrgDetailPage() {
                 value={`${(org.lead_capacity?.total_used ?? 0).toLocaleString()} / ${(org.lead_capacity?.total_cap ?? 0).toLocaleString()}`}
               />
               <Info label="Daily email limit" value={org.daily_email_limit ?? "—"} />
-              <Info label="Lead source" value={org.lead_source_provider || "—"} />
+              <Info
+                label="Lead source"
+                value={
+                  <LeadSourceSelect
+                    orgId={orgId}
+                    provider={org.lead_source_provider}
+                    onSaved={() =>
+                      queryClient.invalidateQueries({ queryKey: [rqKeys.orgs, orgId] })
+                    }
+                  />
+                }
+              />
               <Info label="Content model" value={org.content_generation_model || "—"} />
               <Info label="Assistant model" value={org.assistant_model || "—"} />
               <Info
@@ -286,6 +301,37 @@ function Th({
     >
       {children}
     </th>
+  );
+}
+
+function LeadSourceSelect({
+  orgId,
+  provider,
+  onSaved,
+}: {
+  orgId: string;
+  provider?: string;
+  onSaved: () => void;
+}) {
+  const current = (LEAD_SOURCES.find((p) => p === (provider ?? "").toLowerCase()) ??
+    "exa") as LeadSource;
+  const mut = useMutation({
+    mutationFn: (next: LeadSource) => SetLeadSourceApi(orgId, next),
+    onSuccess: onSaved,
+  });
+  return (
+    <select
+      value={current}
+      disabled={mut.isPending}
+      onChange={(e) => mut.mutate(e.target.value as LeadSource)}
+      className="rounded-lg border border-surface-softer bg-white px-2 py-1 text-xs text-ink focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20 disabled:opacity-50"
+    >
+      {LEAD_SOURCES.map((p) => (
+        <option key={p} value={p}>
+          {p === "exa" ? "Exa" : p === "apollo" ? "Apollo" : "Both"}
+        </option>
+      ))}
+    </select>
   );
 }
 

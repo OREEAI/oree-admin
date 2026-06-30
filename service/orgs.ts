@@ -187,3 +187,28 @@ export async function SetLeadCapApi(
   );
   return unwrapApiEnvelope(data);
 }
+
+// Lead sourcing providers (mirror core.enums OrganizationLeadSourceChoices).
+export const LEAD_SOURCES = ["exa", "apollo", "both"] as const;
+export type LeadSource = (typeof LEAD_SOURCES)[number];
+
+export type LeadSourceResult = {
+  id: string;
+  lead_source_provider: string;
+  apollo_enabled: boolean;
+};
+
+/**
+ * Switch the org's lead sourcing provider (used when there's no DB match).
+ * POST /api/payments/admin/orgs/<id>/lead-source
+ */
+export async function SetLeadSourceApi(
+  orgId: string,
+  provider: LeadSource,
+): Promise<LeadSourceResult> {
+  const { data } = await apiClient.post<LeadSourceResult | ApiEnvelope<LeadSourceResult>>(
+    `/api/payments/admin/orgs/${orgId}/lead-source`,
+    { provider },
+  );
+  return unwrapApiEnvelope(data);
+}
