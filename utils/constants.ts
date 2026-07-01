@@ -9,6 +9,7 @@ export const rqKeys = {
   orgs: "orgs",
   adminUsers: "admin-users",
   platformStats: "platform-stats",
+  leadsStats: "leads-stats",
   mailboxes: "admin-mailboxes",
   domains: "admin-domains",
   campaigns: "admin-campaigns",

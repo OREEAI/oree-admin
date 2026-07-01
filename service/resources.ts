@@ -39,6 +39,34 @@ export async function GetPlatformStatsApi(): Promise<PlatformStats | null> {
   }
 }
 
+export type LeadsStats = {
+  total: number;
+  linked: number;
+  unlinked_pool: number;
+  total_org_uses: number;
+  by_source: Record<string, number>;
+  by_enrichment_source: Record<string, number>;
+  by_validation_status: Record<string, number>;
+  reuse: {
+    reused_leads: number;
+    shared_2_orgs: number;
+    shared_3plus_orgs: number;
+    reuse_uses: number;
+  };
+  top_reused: { name: string; company: string; orgs: number }[];
+};
+
+export async function GetLeadsStatsApi(): Promise<LeadsStats | null> {
+  try {
+    const { data } = await apiClient.get<LeadsStats | ApiEnvelope<LeadsStats>>(
+      "/api/admin/leads-stats",
+    );
+    return unwrapApiEnvelope(data) as LeadsStats;
+  } catch {
+    return null;
+  }
+}
+
 export type AdminMailbox = {
   id: string;
   email_address: string;

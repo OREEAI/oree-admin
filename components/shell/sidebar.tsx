@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   FiActivity,
+  FiDatabase,
   FiGlobe,
   FiGrid,
   FiHome,
@@ -25,6 +26,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/", icon: FiHome },
   { label: "Orgs", href: "/orgs", icon: FiGrid },
   { label: "Users", href: "/users", icon: FiUsers },
+  { label: "Database", href: "/database", icon: FiDatabase },
   { label: "Mailboxes", href: "/mailboxes", icon: FiMail },
   { label: "Domains", href: "/domains", icon: FiGlobe },
   { label: "Campaigns", href: "/campaigns", icon: FiSend },
