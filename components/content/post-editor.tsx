@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { renderMarkdown } from "@/lib/markdown";
@@ -72,6 +72,7 @@ export function PostEditor({ slug }: { slug?: string }) {
   });
 
   const [form, setForm] = useState<FormState | null>(isEdit ? null : EMPTY);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [tagsText, setTagsText] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -374,8 +375,16 @@ export function PostEditor({ slug }: { slug?: string }) {
         {/* Right: split-pane MDX editor + live preview */}
         <div className="lg:col-span-2">
           <label className={labelCls}>Body (MDX)</label>
+          <div className="mt-1.5 rounded-lg border border-surface-softer bg-surface-soft/40 p-1.5">
+            <MdxToolbar
+              taRef={bodyRef}
+              value={form.body_mdx}
+              onChange={(v) => set("body_mdx", v)}
+            />
+          </div>
           <div className="mt-1.5 grid grid-cols-1 gap-3 lg:grid-cols-2">
             <textarea
+              ref={bodyRef}
               value={form.body_mdx}
               onChange={(e) => set("body_mdx", e.target.value)}
               spellCheck={false}
@@ -388,11 +397,133 @@ export function PostEditor({ slug }: { slug?: string }) {
             />
           </div>
           <p className="mt-2 text-[0.7rem] text-ink-soft">
-            Preview is a lightweight approximation. The live site compiles the
+            Use the toolbar to format — or drop in a Stat / Callout / Pull block.
+            Preview on the right is an approximation; the live site compiles the
             full MDX on publish.
           </p>
         </div>
       </div>
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Formatting toolbar for the MDX body. Operates on the textarea's current
+// selection and inserts Markdown / MDX so the author never hand-types syntax —
+// while keeping the raw MDX (custom <Stat>/<Callout>/<Pull> components) intact,
+// which a plain rich-text/HTML editor would destroy (Cyrus Jul 1).
+// ---------------------------------------------------------------------------
+
+type EditFn = (v: string, s: number, e: number) => { value: string; selStart: number; selEnd: number };
+
+const STAT_SNIPPET = '\n<Stat value="25 min" label="Label here" />\n';
+const CALLOUT_SNIPPET = '\n<Callout type="tip" title="Title">\n  Body text.\n</Callout>\n';
+const PULL_SNIPPET = '\n<Pull cite="Name, Role">\n  Quote text goes here.\n</Pull>\n';
+
+function MdxToolbar({
+  taRef,
+  value,
+  onChange,
+}: {
+  taRef: React.RefObject<HTMLTextAreaElement | null>;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const run = (fn: EditFn) => {
+    const ta = taRef.current;
+    if (!ta) return;
+    const { value: nv, selStart, selEnd } = fn(value, ta.selectionStart, ta.selectionEnd);
+    onChange(nv);
+    // Restore focus + selection after React re-renders with the new value.
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(selStart, selEnd);
+    });
+  };
+
+  const wrap =
+    (before: string, after: string, placeholder: string): EditFn =>
+    (v, s, e) => {
+      const sel = v.slice(s, e) || placeholder;
+      const value = v.slice(0, s) + before + sel + after + v.slice(e);
+      return { value, selStart: s + before.length, selEnd: s + before.length + sel.length };
+    };
+
+  const linePrefix =
+    (prefix: string): EditFn =>
+    (v, s, e) => {
+      const lineStart = v.lastIndexOf("\n", s - 1) + 1;
+      const block = v.slice(lineStart, e) || prefix.trim();
+      const prefixed = block
+        .split("\n")
+        .map((l) => prefix + l)
+        .join("\n");
+      const value = v.slice(0, lineStart) + prefixed + v.slice(e);
+      return { value, selStart: lineStart, selEnd: lineStart + prefixed.length };
+    };
+
+  const insert =
+    (text: string): EditFn =>
+    (v, s, e) => {
+      const value = v.slice(0, s) + text + v.slice(e);
+      return { value, selStart: s + text.length, selEnd: s + text.length };
+    };
+
+  const link: EditFn = (v, s, e) => {
+    const sel = v.slice(s, e) || "text";
+    const snippet = `[${sel}](url)`;
+    const value = v.slice(0, s) + snippet + v.slice(e);
+    const urlPos = s + sel.length + 3; // inside (url)
+    return { value, selStart: urlPos, selEnd: urlPos + 3 };
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <Tb label="B" title="Bold" bold onClick={() => run(wrap("**", "**", "bold text"))} />
+      <Tb label="I" title="Italic" italic onClick={() => run(wrap("*", "*", "italic text"))} />
+      <Divider />
+      <Tb label="H2" title="Heading 2" onClick={() => run(linePrefix("## "))} />
+      <Tb label="H3" title="Heading 3" onClick={() => run(linePrefix("### "))} />
+      <Tb label="• List" title="Bulleted list" onClick={() => run(linePrefix("- "))} />
+      <Tb label="1. List" title="Numbered list" onClick={() => run(linePrefix("1. "))} />
+      <Tb label="❝ Quote" title="Blockquote" onClick={() => run(linePrefix("> "))} />
+      <Tb label="Link" title="Insert link" onClick={() => run(link)} />
+      <Tb label="― Divider" title="Horizontal rule" onClick={() => run(insert("\n---\n"))} />
+      <Divider />
+      <Tb label="+ Stat" title="Insert Stat block" onClick={() => run(insert(STAT_SNIPPET))} />
+      <Tb label="+ Callout" title="Insert Callout block" onClick={() => run(insert(CALLOUT_SNIPPET))} />
+      <Tb label="+ Pull" title="Insert Pull quote" onClick={() => run(insert(PULL_SNIPPET))} />
+    </div>
+  );
+}
+
+function Tb({
+  label,
+  title,
+  onClick,
+  bold,
+  italic,
+}: {
+  label: string;
+  title: string;
+  onClick: () => void;
+  bold?: boolean;
+  italic?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className={`inline-flex h-7 items-center justify-center rounded border border-surface-softer bg-white px-2 font-code text-[0.68rem] text-ink-muted transition-colors hover:border-coral hover:text-coral ${
+        bold ? "font-extrabold" : italic ? "font-semibold italic" : "font-bold"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function Divider() {
+  return <span className="mx-1 h-4 w-px bg-surface-softer" />;
 }
