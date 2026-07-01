@@ -453,12 +453,18 @@ function MdxToolbar({
     (prefix: string): EditFn =>
     (v, s, e) => {
       const lineStart = v.lastIndexOf("\n", s - 1) + 1;
-      const block = v.slice(lineStart, e) || prefix.trim();
+      const block = v.slice(lineStart, e);
       const prefixed = block
         .split("\n")
         .map((l) => prefix + l)
         .join("\n");
       const value = v.slice(0, lineStart) + prefixed + v.slice(e);
+      // No selection → drop the cursor after the prefix so the author just
+      // types (avoids inserting a "## ##" placeholder). Else select the block.
+      if (s === e) {
+        const pos = lineStart + prefixed.length;
+        return { value, selStart: pos, selEnd: pos };
+      }
       return { value, selStart: lineStart, selEnd: lineStart + prefixed.length };
     };
 
