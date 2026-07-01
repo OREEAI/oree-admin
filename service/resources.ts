@@ -104,6 +104,77 @@ export async function GetAdminMailboxesApi(params?: {
   return Array.isArray(rows) ? rows : [];
 }
 
+export type AdminMailboxDetail = AdminMailbox & {
+  warmup_start_date: string | null;
+  warmup_completed_at: string | null;
+  warmup_days_remaining: number;
+  send_priority: number;
+  next_send_at: string | null;
+  is_oauth: boolean;
+  is_smtp: boolean;
+  token_expiry: string | null;
+  smtp_host: string;
+  smtp_port: number | null;
+  imap_host: string;
+  created_at: string | null;
+  updated_at: string | null;
+  metrics: Record<string, number>;
+};
+
+export async function GetAdminMailboxDetailApi(id: string): Promise<AdminMailboxDetail | null> {
+  try {
+    const { data } = await apiClient.get<AdminMailboxDetail | ApiEnvelope<AdminMailboxDetail>>(
+      `/api/admin/mailboxes/${id}`,
+    );
+    return unwrapApiEnvelope(data) as AdminMailboxDetail;
+  } catch {
+    return null;
+  }
+}
+
+export async function MailboxActionApi(id: string, action: string) {
+  const { data } = await apiClient.post(`/api/admin/mailboxes/${id}/action`, { action });
+  return unwrapApiEnvelope(data);
+}
+
+export type AdminDomainDetail = AdminDomain & {
+  dkim_key_present: boolean;
+  registrar_id: string;
+  provider_domain_key: string;
+  purchased_at: string | null;
+  created_at: string | null;
+  mailboxes: { email: string; status: string; warmup: string }[];
+};
+
+export async function GetAdminDomainDetailApi(id: string): Promise<AdminDomainDetail | null> {
+  try {
+    const { data } = await apiClient.get<AdminDomainDetail | ApiEnvelope<AdminDomainDetail>>(
+      `/api/admin/domains/${id}`,
+    );
+    return unwrapApiEnvelope(data) as AdminDomainDetail;
+  } catch {
+    return null;
+  }
+}
+
+export type AdminCampaignDetail = AdminCampaign & {
+  delivered: number;
+  celery_task_id: string;
+  result_summary: Record<string, unknown>;
+  leads: { name: string; company: string; status: string }[];
+};
+
+export async function GetAdminCampaignDetailApi(id: string): Promise<AdminCampaignDetail | null> {
+  try {
+    const { data } = await apiClient.get<AdminCampaignDetail | ApiEnvelope<AdminCampaignDetail>>(
+      `/api/admin/campaigns/${id}`,
+    );
+    return unwrapApiEnvelope(data) as AdminCampaignDetail;
+  } catch {
+    return null;
+  }
+}
+
 export type AdminDomain = {
   id: string;
   domain_name: string;

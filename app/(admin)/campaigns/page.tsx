@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -99,7 +100,9 @@ export default function CampaignsPage() {
                   className="border-b border-surface-softer/60 transition-colors hover:bg-surface-soft/40"
                 >
                   <td className="py-3 pl-6 pr-4">
-                    <div className="font-medium text-ink">{c.name}</div>
+                    <Link href={`/campaigns/${c.id}`} className="font-medium text-ink hover:text-coral">
+                      {c.name}
+                    </Link>
                     <div className="text-xs text-ink-soft">{c.icp_name}</div>
                     {c.error_message && (
                       <div className="max-w-sm truncate text-xs text-coral" title={c.error_message}>

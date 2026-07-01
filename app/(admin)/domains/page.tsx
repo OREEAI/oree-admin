@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -85,7 +86,9 @@ export default function DomainsPage() {
                   className="border-b border-surface-softer/60 transition-colors hover:bg-surface-soft/40"
                 >
                   <td className="py-3 pl-6 pr-4">
-                    <div className="font-medium text-ink">{d.domain_name}</div>
+                    <Link href={`/domains/${d.id}`} className="font-medium text-ink hover:text-coral">
+                      {d.domain_name}
+                    </Link>
                     {d.last_sync_error && (
                       <div className="max-w-xs truncate text-xs text-coral" title={d.last_sync_error}>
                         {d.last_sync_error}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -156,7 +157,9 @@ function MailboxRow({ m }: { m: AdminMailbox }) {
   return (
     <tr className="border-b border-surface-softer/60 transition-colors hover:bg-surface-soft/40">
       <td className="py-3 pl-6 pr-4">
-        <div className="font-medium text-ink">{m.email_address}</div>
+        <Link href={`/mailboxes/${m.id}`} className="font-medium text-ink hover:text-coral">
+          {m.email_address}
+        </Link>
         {m.assigned_user && (
           <div className="text-xs text-ink-soft">{m.assigned_user}</div>
         )}
