@@ -8,6 +8,10 @@ export const rqKeys = {
   session: "session",
   orgs: "orgs",
   adminUsers: "admin-users",
+  platformStats: "platform-stats",
+  mailboxes: "admin-mailboxes",
+  domains: "admin-domains",
+  campaigns: "admin-campaigns",
 };
 
 // The cookie key the topbar "Act as org" switcher writes. Set on the

@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { ListPostsApi } from "@/service/content";
 import { GetAdminOrgsApi } from "@/service/orgs";
+import { GetPlatformStatsApi } from "@/service/resources";
 import { rqKeys } from "@/utils/constants";
 
 export default function AdminDashboardPage() {
@@ -19,6 +20,12 @@ export default function AdminDashboardPage() {
     queryFn: () => ListPostsApi(),
     staleTime: 5 * 60_000,
   });
+  const platformQuery = useQuery({
+    queryKey: [rqKeys.platformStats],
+    queryFn: GetPlatformStatsApi,
+    staleTime: 60_000,
+  });
+  const p = platformQuery.data;
 
   const orgs = orgsQuery.data ?? [];
   const posts = postsQuery.data ?? [];
@@ -70,6 +77,54 @@ export default function AdminDashboardPage() {
         <BreakdownCard title="Organisations by status" rows={stats.byStatus} loading={loading} />
       </div>
 
+      {/* Platform resources — what's actually in the system */}
+      <h2 className="mt-10 font-code text-[0.65rem] font-bold uppercase tracking-[0.2em] text-ink-soft">
+        Platform
+      </h2>
+      <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Leads in DB" value={p?.leads.total ?? 0} loading={!p} href="/orgs" />
+        <StatCard label="Unlinked pool" value={p?.leads.unlinked_pool ?? 0} loading={!p} href="/orgs" />
+        <StatCard
+          label="Mailboxes (active)"
+          value={p?.mailboxes.active ?? 0}
+          loading={!p}
+          href="/mailboxes"
+        />
+        <StatCard label="Domains" value={p?.domains.total ?? 0} loading={!p} href="/domains" />
+        <StatCard
+          label="Campaigns running"
+          value={p?.campaigns.running ?? 0}
+          loading={!p}
+          href="/campaigns"
+        />
+        <StatCard
+          label="Campaigns failed today"
+          value={p?.campaigns.failed_today ?? 0}
+          loading={!p}
+          href="/campaigns"
+        />
+        <StatCard
+          label="Sent today"
+          value={p?.mailboxes.sent_today ?? 0}
+          loading={!p}
+          href="/mailboxes"
+        />
+        <StatCard label="Warming" value={p?.mailboxes.warming ?? 0} loading={!p} href="/mailboxes" />
+      </div>
+
+      {/* Deliverability pulse — today's email events */}
+      {p && (
+        <div className="mt-4 flex flex-wrap gap-6 rounded-2xl border border-surface-softer bg-white px-6 py-4 shadow-soft-lift">
+          <span className="font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+            Email today
+          </span>
+          <MiniStat label="Sent" value={p.email_today.SENT ?? 0} />
+          <MiniStat label="Opened" value={p.email_today.OPEN ?? 0} />
+          <MiniStat label="Replied" value={p.email_today.REPLY ?? 0} />
+          <MiniStat label="Bounced" value={p.email_today.BOUNCE ?? 0} />
+        </div>
+      )}
+
       {/* Section shortcuts */}
       <h2 className="mt-10 font-code text-[0.65rem] font-bold uppercase tracking-[0.2em] text-ink-soft">
         Manage
@@ -80,6 +135,9 @@ export default function AdminDashboardPage() {
           title="Organisations"
           desc="Tier overrides, refunds, impersonation."
         />
+        <NavCard href="/mailboxes" title="Mailboxes" desc="Warmup, send load, deliverability." />
+        <NavCard href="/domains" title="Domains" desc="DNS verification, provider, expiry." />
+        <NavCard href="/campaigns" title="Campaigns" desc="Live runs, queued, failures." />
         <NavCard href="/content/posts" title="Content" desc="Write, edit and publish blog posts." />
         <NavCard href="/cleanup" title="Cleanup" desc="Run data-integrity cleanup tasks." />
         <NavCard href="/webhooks" title="Webhooks" desc="Inspect & replay integration events." />
@@ -117,6 +175,17 @@ function StatCard({
         {loading ? "…" : value.toLocaleString()}
       </div>
     </Link>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: number }) {
+  return (
+    <span className="flex items-baseline gap-2">
+      <span className="font-code text-lg font-bold tabular-nums text-ink">
+        {value.toLocaleString()}
+      </span>
+      <span className="text-xs text-ink-soft">{label}</span>
+    </span>
   );
 }
 

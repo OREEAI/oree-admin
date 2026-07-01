@@ -4,8 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   FiActivity,
+  FiGlobe,
   FiGrid,
   FiHome,
+  FiMail,
+  FiSend,
   FiTrash2,
   FiUsers,
   FiZap,
@@ -18,11 +21,13 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
 };
 
-// Nav stubs — destinations are placeholders for now.
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/", icon: FiHome },
   { label: "Orgs", href: "/orgs", icon: FiGrid },
   { label: "Users", href: "/users", icon: FiUsers },
+  { label: "Mailboxes", href: "/mailboxes", icon: FiMail },
+  { label: "Domains", href: "/domains", icon: FiGlobe },
+  { label: "Campaigns", href: "/campaigns", icon: FiSend },
   { label: "Content", href: "/content", icon: FiActivity },
   { label: "Cleanup", href: "/cleanup", icon: FiTrash2 },
   { label: "Webhooks", href: "/webhooks", icon: FiZap },
