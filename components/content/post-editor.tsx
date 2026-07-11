@@ -18,6 +18,7 @@ import {
   UnpublishPostApi,
   UpdatePostApi,
   resolveCoverUrl,
+  UploadCoverApi,
 } from "@/service/content";
 
 const labelCls =
@@ -77,6 +78,17 @@ export function PostEditor({ slug }: { slug?: string }) {
   const [tagsText, setTagsText] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const coverFileRef = useRef<HTMLInputElement>(null);
+
+  const coverUploadMut = useMutation({
+    mutationFn: (file: File) => UploadCoverApi(file),
+    onMutate: () => setError(""),
+    onSuccess: (url) => {
+      set("cover_image_url", url);
+      setNotice("Cover uploaded.");
+    },
+    onError: (e) => setError(getApiErrorMessage(e, "Cover upload failed.")),
+  });
 
   // Hydrate the form once the post loads (edit mode).
   const loaded = postQuery.data;
@@ -344,8 +356,27 @@ export function PostEditor({ slug }: { slug?: string }) {
                 </span>
               </div>
             )}
+            <input
+              ref={coverFileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) coverUploadMut.mutate(file);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => coverFileRef.current?.click()}
+              disabled={coverUploadMut.isPending}
+              className="mb-3 w-full rounded-full border border-surface-softer bg-white px-4 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-muted transition-colors hover:border-coral hover:text-coral disabled:cursor-wait disabled:opacity-60"
+            >
+              {coverUploadMut.isPending ? "Uploading…" : "Upload image from computer"}
+            </button>
             <label className={labelCls} htmlFor="cover">
-              Cover image URL
+              Or paste an image URL
             </label>
             <input
               id="cover"

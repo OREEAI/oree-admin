@@ -78,6 +78,23 @@ const AUTHORS = "/api/marketing/admin/authors";
 // oreeai.com or they 404 on admin.oreeai.com.
 const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_ORIGIN || "https://oreeai.com";
 
+/**
+ * Upload a cover image from the writer's machine. Returns the absolute
+ * URL to store in cover_image_url.
+ *
+ * Endpoint: POST /api/marketing/admin/posts/upload-cover (multipart)
+ */
+export async function UploadCoverApi(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const { data } = await apiClient.post<{ url: string } | ApiEnvelope<{ url: string }>>(
+    `${POSTS}/upload-cover`,
+    fd,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return unwrapApiEnvelope(data).url;
+}
+
 export function resolveCoverUrl(url?: string | null): string {
   if (!url) return "";
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
