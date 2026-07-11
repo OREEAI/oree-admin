@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
-import { FiGlobe } from "react-icons/fi";
+import { FiGlobe, FiZap } from "react-icons/fi";
 
-import { GetAdminDomainDetailApi } from "@/service/resources";
+import { getApiErrorMessage } from "@/service/api";
+import { ConfigureDomainDnsApi, GetAdminDomainDetailApi } from "@/service/resources";
 import { AdminTh, Pill } from "../../_components/table";
-import { BackLink, DetailList, DetailRow, Panel, StatePill } from "../../_components/ui";
+import { BackLink, DetailList, DetailRow, HeaderAction, Panel, StatePill } from "../../_components/ui";
 
 function fmt(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -31,6 +32,11 @@ export default function DomainDetailPage() {
     staleTime: 30_000,
   });
   const d = query.data;
+
+  const configure = useMutation({
+    mutationFn: () => ConfigureDomainDnsApi(id),
+    onSuccess: () => query.refetch(),
+  });
 
   return (
     <div>
@@ -55,7 +61,34 @@ export default function DomainDetailPage() {
                 {d.organization_name} · {d.provider}
               </p>
             </div>
+            <div className="ml-auto">
+              <HeaderAction
+                icon={FiZap}
+                label={
+                  configure.isPending
+                    ? "Configuring…"
+                    : d.dns_verified
+                      ? "Re-run DNS sync"
+                      : "Finish DNS setup"
+                }
+                disabled={configure.isPending}
+                onClick={() => configure.mutate()}
+              />
+            </div>
           </div>
+          {configure.isSuccess ? (
+            <p
+              className={`mt-3 text-sm ${configure.data.dns_verified ? "text-success" : "text-warning"}`}
+            >
+              {configure.data.dns_verified
+                ? "DNS configured and verified — the domain is active."
+                : `Records written, but verification hasn't passed yet${configure.data.sync_error ? `: ${configure.data.sync_error}` : " — DNS can take a few minutes to propagate; run it again shortly."}`}
+            </p>
+          ) : configure.isError ? (
+            <p className="mt-3 text-sm text-coral">
+              {getApiErrorMessage(configure.error, "DNS configuration failed.")}
+            </p>
+          ) : null}
 
           <div className="mt-6 grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
             <Panel title="DNS &amp; provider" right={<StatePill value={d.dns_verified ? "verified" : "pending"} />}>

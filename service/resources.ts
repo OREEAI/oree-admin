@@ -380,3 +380,20 @@ export async function ReplayWebhookEventApi(id: string): Promise<{ status: strin
   );
   return unwrapApiEnvelope(data) as { status: string };
 }
+
+/** Run DNS setup + verification for a domain: writes missing SPF/DKIM/
+ * DMARC/tracking records at the registrar and refreshes the flags. */
+export type DomainDnsResult = {
+  domain_id: string;
+  domain_name: string;
+  dns_verified: boolean;
+  status: string;
+  sync_error: string | null;
+};
+
+export async function ConfigureDomainDnsApi(id: string): Promise<DomainDnsResult> {
+  const { data } = await apiClient.post<DomainDnsResult | ApiEnvelope<DomainDnsResult>>(
+    `/api/admin/domains/${id}/configure-dns`,
+  );
+  return unwrapApiEnvelope(data) as DomainDnsResult;
+}
