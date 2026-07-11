@@ -2,9 +2,14 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+import { BreakdownCard } from "@/components/breakdown-card";
 import { GetLeadsStatsApi } from "@/service/resources";
 import { rqKeys } from "@/utils/constants";
 import { AdminTh } from "../_components/table";
+
+function toRows(rows: Record<string, number>): [string, number][] {
+  return Object.entries(rows).sort((a, b) => b[1] - a[1]);
+}
 
 export default function DatabasePage() {
   const query = useQuery({
@@ -55,9 +60,9 @@ export default function DatabasePage() {
 
           {/* Breakdowns */}
           <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <Breakdown title="By source" rows={s.by_source} />
-            <Breakdown title="By enrichment" rows={s.by_enrichment_source} />
-            <Breakdown title="By validation" rows={s.by_validation_status} />
+            <BreakdownCard title="By source" rows={toRows(s.by_source)} />
+            <BreakdownCard title="By enrichment" rows={toRows(s.by_enrichment_source)} />
+            <BreakdownCard title="By validation" rows={toRows(s.by_validation_status)} />
           </div>
 
           {/* Top reused leads */}
@@ -123,40 +128,6 @@ function Stat({
         {value.toLocaleString()}
       </div>
       {hint && <div className="mt-1 text-xs text-ink-soft">{hint}</div>}
-    </div>
-  );
-}
-
-function Breakdown({ title, rows }: { title: string; rows: Record<string, number> }) {
-  const entries = Object.entries(rows).sort((a, b) => b[1] - a[1]);
-  const total = entries.reduce((sum, [, n]) => sum + n, 0) || 1;
-  return (
-    <div className="rounded-2xl border border-surface-softer bg-white p-6 shadow-soft-lift">
-      <p className="font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-coral">
-        {title}
-      </p>
-      {entries.length === 0 ? (
-        <p className="mt-4 text-sm text-ink-soft">No data.</p>
-      ) : (
-        <div className="mt-4 space-y-3">
-          {entries.map(([name, count]) => (
-            <div key={name}>
-              <div className="flex items-center justify-between text-sm">
-                <span className="capitalize text-ink">{name.replace(/_/g, " ")}</span>
-                <span className="font-code tabular-nums text-ink-muted">
-                  {count.toLocaleString()}
-                </span>
-              </div>
-              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-soft">
-                <div
-                  className="h-full rounded-full bg-coral"
-                  style={{ width: `${Math.round((count / total) * 100)}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
