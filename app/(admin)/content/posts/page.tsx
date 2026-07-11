@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
+import { useUserQuery } from "@/hooks/useUser";
+import { getApiErrorMessage } from "@/service/api";
 import {
   type BlogPost,
   ListPostsApi,
   POST_STATUSES,
   type PostStatus,
 } from "@/service/content";
+import { InviteContentAdminApi } from "@/service/users";
 
 function fmtDate(iso: string | null) {
   if (!iso) return "—";
@@ -21,6 +24,10 @@ function fmtDate(iso: string | null) {
 
 export default function PostsListPage() {
   const [statusFilter, setStatusFilter] = useState<PostStatus | "all">("all");
+  const [inviteOpen, setInviteOpen] = useState(false);
+
+  const userQuery = useUserQuery();
+  const isSuperAdmin = userQuery.data?.role === "super_admin";
 
   const postsQuery = useQuery({
     queryKey: ["admin-posts", statusFilter],
@@ -38,13 +45,26 @@ export default function PostsListPage() {
             Create, edit and publish marketing blog posts.
           </p>
         </div>
-        <Link
-          href="/content/posts/new"
-          className="rounded-full bg-coral px-4 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-coral-700"
-        >
-          New post
-        </Link>
+        <div className="flex items-center gap-2">
+          {isSuperAdmin ? (
+            <button
+              type="button"
+              onClick={() => setInviteOpen((v) => !v)}
+              className="rounded-full border border-ink/15 bg-white px-4 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.2em] text-ink transition-colors hover:border-coral hover:text-coral"
+            >
+              Invite writer
+            </button>
+          ) : null}
+          <Link
+            href="/content/posts/new"
+            className="rounded-full bg-coral px-4 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-coral-700"
+          >
+            New post
+          </Link>
+        </div>
       </div>
+
+      {isSuperAdmin && inviteOpen ? <InviteWriterPanel /> : null}
 
       <div className="mt-6 flex items-center gap-2">
         {(["all", ...POST_STATUSES] as const).map((s) => (
@@ -134,6 +154,101 @@ export default function PostsListPage() {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+function InviteWriterPanel() {
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const invite = useMutation({
+    mutationFn: () => InviteContentAdminApi(email.trim(), firstName.trim()),
+  });
+
+  const inviteUrl = invite.data?.invite_url ?? "";
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard unavailable — the URL is visible to copy manually.
+    }
+  };
+
+  return (
+    <div className="mt-6 rounded-2xl border border-surface-softer bg-white p-5">
+      <h2 className="text-sm font-semibold text-ink">Invite a writer</h2>
+      <p className="mt-1 text-xs text-ink-muted">
+        Writers get a content-admin login: they can create, edit and publish blog posts, and
+        see nothing else in this console. The invite link is shown once — copy it and send it
+        to them directly.
+      </p>
+
+      {inviteUrl ? (
+        <div className="mt-4">
+          <p className="text-xs text-ink-muted">
+            Invite created for <span className="font-medium text-ink">{invite.data?.email}</span>
+            {" "}(expires {new Date(invite.data?.expires_at ?? "").toLocaleDateString()}):
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <code className="flex-1 overflow-x-auto rounded-lg border border-surface-softer bg-surface-soft px-3 py-2 text-xs text-ink">
+              {inviteUrl}
+            </code>
+            <button
+              type="button"
+              onClick={copyLink}
+              className="shrink-0 rounded-full bg-coral px-4 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-coral-700"
+            >
+              {copied ? "Copied" : "Copy link"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="font-code text-[0.6rem] font-bold uppercase tracking-[0.16em] text-ink-soft">
+              Email
+            </span>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="writer@example.com"
+              className="w-64 rounded-lg border border-surface-softer px-3 py-2 text-sm text-ink focus:border-coral focus:outline-none"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="font-code text-[0.6rem] font-bold uppercase tracking-[0.16em] text-ink-soft">
+              First name (optional)
+            </span>
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Kingsley"
+              className="w-44 rounded-lg border border-surface-softer px-3 py-2 text-sm text-ink focus:border-coral focus:outline-none"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => invite.mutate()}
+            disabled={!email.trim() || invite.isPending}
+            className="rounded-full bg-coral px-5 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-coral-700 disabled:cursor-not-allowed disabled:bg-coral/40"
+          >
+            {invite.isPending ? "Creating…" : "Create invite"}
+          </button>
+        </div>
+      )}
+
+      {invite.isError ? (
+        <p className="mt-3 text-xs text-coral">
+          {getApiErrorMessage(invite.error, "Couldn't create the invite. Try again.")}
+        </p>
+      ) : null}
     </div>
   );
 }

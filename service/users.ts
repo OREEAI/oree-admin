@@ -103,3 +103,34 @@ export async function GetAdminUsersApi(orgId?: string): Promise<AdminUser[]> {
   const rows = unwrapApiEnvelope(data);
   return Array.isArray(rows) ? rows : [];
 }
+
+export type ContentAdminInviteResponse = {
+  invite_id: string;
+  invite_url: string;
+  email: string;
+  role: string;
+  expires_at: string;
+};
+
+/**
+ * Invite a console content admin (blog author). Creates an inactive user
+ * with role=content_admin and returns a one-time invite URL to copy into
+ * Slack/DM. Super-admin only.
+ *
+ * Endpoint: POST /api/users  { email, role: "content_admin" }
+ */
+export async function InviteContentAdminApi(
+  email: string,
+  firstName = "",
+  lastName = "",
+): Promise<ContentAdminInviteResponse> {
+  const { data } = await apiClient.post<
+    ContentAdminInviteResponse | ApiEnvelope<ContentAdminInviteResponse>
+  >("/api/users", {
+    email,
+    first_name: firstName,
+    last_name: lastName,
+    role: "content_admin",
+  });
+  return unwrapApiEnvelope(data);
+}

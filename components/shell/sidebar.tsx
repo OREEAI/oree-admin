@@ -35,8 +35,12 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Webhooks", href: "/webhooks", icon: FiZap },
 ];
 
-export function Sidebar() {
+// Content admins (blog authors) see only the Content section.
+const CONTENT_ADMIN_ITEMS = NAV_ITEMS.filter((item) => item.href === "/content");
+
+export function Sidebar({ role }: { role?: string }) {
   const pathname = usePathname();
+  const items = role === "content_admin" ? CONTENT_ADMIN_ITEMS : NAV_ITEMS;
 
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-surface-softer bg-white">
@@ -50,7 +54,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 p-3">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const isActive =
             item.href === "/"
               ? pathname === "/"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useStoredAuth } from "@/hooks/useAuth";
 import { useUserQuery } from "@/hooks/useUser";
 import { clearAuth } from "@/service/auth";
@@ -10,6 +10,11 @@ import { Sidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
 
 const SUPER_ADMIN_ROLE = "super_admin";
+// Console-only content role (blog authors like Kingsley): may sign in,
+// but only the Content section — everything else stays super-admin.
+const CONTENT_ADMIN_ROLE = "content_admin";
+const CONSOLE_ROLES: string[] = [SUPER_ADMIN_ROLE, CONTENT_ADMIN_ROLE];
+const CONTENT_HOME = "/content/posts";
 
 /**
  * Admin auth gate.
@@ -20,6 +25,7 @@ const SUPER_ADMIN_ROLE = "super_admin";
  */
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const storedAuth = useStoredAuth();
   const hasStoredAuth = Boolean(storedAuth?.refresh_token);
 
@@ -43,18 +49,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.replace("/login");
   }, [hasStoredAuth, router, userQuery.error, userQuery.isError]);
 
-  // Authenticated but not a super-admin → not authorised.
+  // Authenticated but not a console role → not authorised.
   useEffect(() => {
     if (!userQuery.isSuccess) return;
-    if (userQuery.data.role !== SUPER_ADMIN_ROLE) {
+    if (!CONSOLE_ROLES.includes(userQuery.data.role)) {
       router.replace("/not-authorised");
     }
   }, [router, userQuery.data, userQuery.isSuccess]);
 
+  // Content admins live in /content only — any other route bounces there.
+  const isContentAdmin = userQuery.isSuccess && userQuery.data.role === CONTENT_ADMIN_ROLE;
+  const contentAdminOffLimits = isContentAdmin && !pathname.startsWith("/content");
+  useEffect(() => {
+    if (contentAdminOffLimits) {
+      router.replace(CONTENT_HOME);
+    }
+  }, [contentAdminOffLimits, router]);
+
   const isReady =
     hasStoredAuth &&
     userQuery.isSuccess &&
-    userQuery.data.role === SUPER_ADMIN_ROLE;
+    CONSOLE_ROLES.includes(userQuery.data.role) &&
+    !contentAdminOffLimits;
 
   if (!isReady) {
     return <AdminShellSkeleton />;
@@ -62,7 +78,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface-soft text-ink">
-      <Sidebar />
+      <Sidebar role={userQuery.data.role} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar user={userQuery.data} />
         <main className="flex-1 overflow-y-auto p-8">{children}</main>
