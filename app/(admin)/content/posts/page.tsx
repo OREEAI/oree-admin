@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
+import { FiClock, FiStar } from "react-icons/fi";
+
+import { OreeMark } from "@/components/brand/oree-logo";
 import { useUserQuery } from "@/hooks/useUser";
 import { getApiErrorMessage } from "@/service/api";
 import {
@@ -24,6 +27,7 @@ function fmtDate(iso: string | null) {
 
 export default function PostsListPage() {
   const [statusFilter, setStatusFilter] = useState<PostStatus | "all">("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [inviteOpen, setInviteOpen] = useState(false);
 
   const userQuery = useUserQuery();
@@ -33,6 +37,29 @@ export default function PostsListPage() {
     queryKey: ["admin-posts", statusFilter],
     queryFn: () => ListPostsApi(statusFilter === "all" ? undefined : statusFilter),
   });
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const post of postsQuery.data ?? []) if (post.category) set.add(post.category);
+    return Array.from(set).sort();
+  }, [postsQuery.data]);
+
+  const posts = useMemo(() => {
+    let all = postsQuery.data ?? [];
+    if (categoryFilter !== "all") all = all.filter((post) => post.category === categoryFilter);
+    // Featured first, then newest.
+    return [...all].sort((a, b) => {
+      if (a.featured !== b.featured) return a.featured ? -1 : 1;
+      return String(b.published_at ?? b.created_at ?? "").localeCompare(
+        String(a.published_at ?? a.created_at ?? ""),
+      );
+    });
+  }, [postsQuery.data, categoryFilter]);
+
+  const publishedCount = useMemo(
+    () => (postsQuery.data ?? []).filter((post) => post.status === "published").length,
+    [postsQuery.data],
+  );
 
   return (
     <div>
@@ -44,6 +71,11 @@ export default function PostsListPage() {
           <p className="mt-2 text-sm text-ink-muted">
             Create, edit and publish marketing blog posts.
           </p>
+          {postsQuery.data ? (
+            <p className="mt-2 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+              {postsQuery.data.length} posts · {publishedCount} live on the blog
+            </p>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           {isSuperAdmin ? (
@@ -66,21 +98,44 @@ export default function PostsListPage() {
 
       {isSuperAdmin && inviteOpen ? <InviteWriterPanel /> : null}
 
-      <div className="mt-6 flex items-center gap-2">
-        {(["all", ...POST_STATUSES] as const).map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setStatusFilter(s)}
-            className={`rounded-full px-3 py-1.5 font-code text-[0.6rem] font-bold uppercase tracking-[0.16em] transition-colors ${
-              statusFilter === s
-                ? "bg-coral text-white"
-                : "border border-surface-softer text-ink-muted hover:border-coral hover:text-coral"
-            }`}
-          >
-            {s}
-          </button>
-        ))}
+      <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+        <div className="flex items-center gap-2">
+          {(["all", ...POST_STATUSES] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStatusFilter(s)}
+              className={`rounded-full px-3 py-1.5 font-code text-[0.6rem] font-bold uppercase tracking-[0.16em] transition-colors ${
+                statusFilter === s
+                  ? "bg-coral text-white"
+                  : "border border-surface-softer bg-white text-ink-muted hover:border-coral hover:text-coral"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        {categories.length > 1 ? (
+          <div className="flex items-center gap-2">
+            <span className="font-code text-[0.55rem] font-bold uppercase tracking-[0.2em] text-ink-soft">
+              Category
+            </span>
+            {["all", ...categories].map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategoryFilter(c)}
+                className={`rounded-full px-3 py-1.5 font-code text-[0.6rem] font-bold uppercase tracking-[0.16em] transition-colors ${
+                  categoryFilter === c
+                    ? "bg-navy-800 text-white"
+                    : "border border-surface-softer bg-white text-ink-muted hover:border-navy-300 hover:text-ink"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {postsQuery.isPending && (
@@ -93,68 +148,88 @@ export default function PostsListPage() {
       )}
 
       {postsQuery.data && (
-        <div className="mt-6 overflow-x-auto rounded-2xl border border-surface-softer bg-white shadow-soft-lift">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-surface-softer bg-surface-soft/50">
-                <Th className="pl-6">Title</Th>
-                <Th>Status</Th>
-                <Th>Category</Th>
-                <Th>Author</Th>
-                <Th className="pr-6 text-right">Published</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {postsQuery.data.map((post: BlogPost) => (
-                <tr
-                  key={post.id}
-                  className="border-b border-surface-softer/60 transition-colors hover:bg-surface-soft/40"
-                >
-                  <td className="py-3 pl-6 pr-4">
-                    <Link
-                      href={`/content/posts/${post.slug}/edit`}
-                      className="font-medium text-ink hover:text-coral"
-                    >
-                      {post.title}
-                    </Link>
-                    {post.featured && (
-                      <span className="ml-2 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-coral">
-                        ★ featured
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 pr-4">
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 font-code text-[0.56rem] font-bold uppercase tracking-[0.14em] ${
-                        post.status === "published"
-                          ? "bg-success/10 text-success"
-                          : post.status === "archived"
-                            ? "bg-ink/5 text-ink-muted"
-                            : "bg-warning/15 text-warning"
-                      }`}
-                    >
-                      {post.status}
-                    </span>
-                  </td>
-                  <td className="py-3 pr-4 text-ink-muted">{post.category || "—"}</td>
-                  <td className="py-3 pr-4 text-ink-muted">{post.author_name || "—"}</td>
-                  <td className="py-3 pl-4 pr-6 text-right font-code text-[0.7rem] text-ink-soft">
-                    {fmtDate(post.published_at)}
-                  </td>
-                </tr>
-              ))}
-              {postsQuery.data.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-ink-soft">
-                    No posts {statusFilter !== "all" ? `with status “${statusFilter}”` : "yet"}.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {posts.map((post: BlogPost) => (
+            <PostCard key={post.id} post={post} />
+          ))}
+          {posts.length === 0 && (
+            <p className="col-span-full rounded-2xl border border-dashed border-surface-softer bg-white px-6 py-12 text-center text-sm text-ink-soft">
+              No posts match the current filters.
+            </p>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function PostCard({ post }: { post: BlogPost }) {
+  const statusTone =
+    post.status === "published"
+      ? "bg-success/90 text-white"
+      : post.status === "archived"
+        ? "bg-ink/60 text-white"
+        : "bg-warning/90 text-white";
+
+  return (
+    <Link
+      href={`/content/posts/${post.slug}/edit`}
+      className="group flex flex-col overflow-hidden rounded-2xl border border-surface-softer bg-white shadow-soft-lift transition-all hover:-translate-y-0.5 hover:border-coral/40 hover:shadow-lg"
+    >
+      {/* Cover — real image when set, branded navy fallback when not. */}
+      <div className="relative aspect-[16/9] overflow-hidden bg-navy-900">
+        {post.cover_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={post.cover_image_url}
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div className="relative flex h-full w-full items-end p-4">
+            <OreeMark className="absolute -right-8 -top-10 h-40 w-40 opacity-[0.12]" />
+            <span className="relative font-code text-[0.6rem] font-bold uppercase tracking-[0.22em] text-white/50">
+              {post.category || "Oree blog"}
+            </span>
+          </div>
+        )}
+        <span
+          className={`absolute right-3 top-3 rounded-full px-2.5 py-0.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] ${statusTone}`}
+        >
+          {post.status}
+        </span>
+        {post.featured ? (
+          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-coral px-2.5 py-0.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-white">
+            <FiStar className="h-3 w-3" />
+            Featured
+          </span>
+        ) : null}
+      </div>
+
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-center justify-between gap-3">
+          <span className="font-code text-[0.58rem] font-bold uppercase tracking-[0.18em] text-coral">
+            {post.category || "Uncategorised"}
+          </span>
+          {post.reading_time_min ? (
+            <span className="inline-flex items-center gap-1 font-code text-[0.6rem] tabular-nums text-ink-soft">
+              <FiClock className="h-3 w-3" />
+              {post.reading_time_min} min
+            </span>
+          ) : null}
+        </div>
+        <h3 className="mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-snug text-ink transition-colors group-hover:text-coral">
+          {post.title}
+        </h3>
+        {post.excerpt ? (
+          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-muted">{post.excerpt}</p>
+        ) : null}
+        <div className="mt-auto flex items-center justify-between gap-3 pt-4 text-xs text-ink-soft">
+          <span className="truncate">{post.author_name || "—"}</span>
+          <span className="shrink-0 font-code tabular-nums">{fmtDate(post.published_at)}</span>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -253,18 +328,3 @@ function InviteWriterPanel() {
   );
 }
 
-function Th({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <th
-      className={`py-2.5 text-left font-code text-[0.6rem] font-bold uppercase tracking-[0.15em] text-ink-soft ${className}`}
-    >
-      {children}
-    </th>
-  );
-}
