@@ -39,6 +39,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Orgs", href: "/orgs", icon: FiGrid },
       { label: "Users", href: "/users", icon: FiUsers },
       { label: "Database", href: "/database", icon: FiDatabase },
+      { label: "Integrations", href: "/integrations", icon: FiZap },
     ],
   },
   {

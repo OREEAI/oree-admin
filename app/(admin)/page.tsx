@@ -23,7 +23,7 @@ import { BreakdownCard } from "@/components/breakdown-card";
 import { useUserQuery } from "@/hooks/useUser";
 import { type BlogPost, ListPostsApi } from "@/service/content";
 import { GetAdminOrgsApi } from "@/service/orgs";
-import { GetPlatformStatsApi } from "@/service/resources";
+import { GetCeleryHealthApi, GetPlatformStatsApi } from "@/service/resources";
 import { rqKeys } from "@/utils/constants";
 
 export default function AdminDashboardPage() {
@@ -154,6 +154,8 @@ function PlatformDashboard() {
           <MiniStat label="Bounced" value={p.email_today.BOUNCE ?? 0} />
         </div>
       )}
+
+      <QueueHealthPanel />
 
       {/* Section shortcuts */}
       <h2 className="mt-10 font-code text-[0.65rem] font-bold uppercase tracking-[0.2em] text-ink-soft">
@@ -336,5 +338,60 @@ function NavCard({ href, title, desc }: { href: string; title: string; desc: str
         Open →
       </span>
     </Link>
+  );
+}
+
+function QueueHealthPanel() {
+  const query = useQuery({
+    queryKey: ["admin-celery-health"],
+    queryFn: GetCeleryHealthApi,
+    refetchInterval: 30_000,
+  });
+  const h = query.data;
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-6 rounded-2xl border border-surface-softer bg-white px-6 py-4 shadow-soft-lift">
+      <span className="font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+        Queue health
+      </span>
+      {query.isPending ? (
+        <span className="text-sm text-ink-soft">Checking workers…</span>
+      ) : query.isError || !h ? (
+        <span className="text-sm text-coral">Couldn&apos;t reach the workers.</span>
+      ) : (
+        <>
+          <span className="flex items-baseline gap-2">
+            <span
+              className={`font-code text-lg font-bold tabular-nums ${h.workers_ok ? "text-success" : "text-coral"}`}
+            >
+              {h.worker_count}
+            </span>
+            <span className="text-xs text-ink-soft">workers online</span>
+          </span>
+          <span className="flex items-baseline gap-2">
+            <span className="font-code text-lg font-bold tabular-nums text-ink">
+              {h.queue_depth ?? "—"}
+            </span>
+            <span className="text-xs text-ink-soft">queued</span>
+          </span>
+          <span className="flex items-baseline gap-2">
+            <span className="font-code text-lg font-bold tabular-nums text-ink">
+              {h.workers.reduce((n, w) => n + w.active, 0)}
+            </span>
+            <span className="text-xs text-ink-soft">running</span>
+          </span>
+          {h.running.length > 0 ? (
+            <span className="truncate text-xs text-ink-soft">
+              latest: {h.running[0].name?.split(".").pop()}
+            </span>
+          ) : null}
+          {!h.workers_ok ? (
+            <span className="text-xs font-medium text-coral">
+              No workers responded — sends and sourcing are stalled.
+            </span>
+          ) : null}
+        </>
+      )}
+    </div>
   );
 }

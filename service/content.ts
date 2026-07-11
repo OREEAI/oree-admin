@@ -161,3 +161,97 @@ export async function ListAuthorsApi(): Promise<BlogAuthor[]> {
   const rows = unwrapApiEnvelope(data);
   return Array.isArray(rows) ? rows : [];
 }
+
+// ---------------------------------------------------------------------------
+// Blog authors CRUD (console Authors page)
+// ---------------------------------------------------------------------------
+
+export type BlogAuthorInput = {
+  name: string;
+  slug?: string;
+  bio?: string;
+  avatar_url?: string;
+  linkedin_url?: string;
+};
+
+export async function CreateAuthorApi(payload: BlogAuthorInput): Promise<BlogAuthor> {
+  const { data } = await apiClient.post<BlogAuthor | ApiEnvelope<BlogAuthor>>(AUTHORS, payload);
+  return unwrapApiEnvelope(data);
+}
+
+export async function UpdateAuthorApi(slug: string, payload: Partial<BlogAuthorInput>): Promise<BlogAuthor> {
+  const { data } = await apiClient.patch<BlogAuthor | ApiEnvelope<BlogAuthor>>(
+    `${AUTHORS}/${slug}`,
+    payload,
+  );
+  return unwrapApiEnvelope(data);
+}
+
+export async function DeleteAuthorApi(slug: string): Promise<void> {
+  await apiClient.delete(`${AUTHORS}/${slug}`);
+}
+
+// ---------------------------------------------------------------------------
+// Resources (lead magnets) CRUD
+// ---------------------------------------------------------------------------
+
+const RESOURCES = "/api/marketing/admin/resources";
+
+export const RESOURCE_TYPES = ["Guide", "Worksheet", "Playbook"] as const;
+export const RESOURCE_STATUSES = ["draft", "published", "archived"] as const;
+
+export type MarketingResource = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  resource_type: string;
+  author_fk: string | null;
+  author_name?: string | null;
+  file_url: string;
+  cover_image_url: string;
+  gated: boolean;
+  estimated_time: string;
+  status: string;
+  seo_title?: string;
+  seo_description?: string;
+  download_count?: number;
+  published_at: string | null;
+  created_at?: string;
+};
+
+export type MarketingResourceInput = Partial<
+  Omit<MarketingResource, "id" | "author_name" | "download_count" | "published_at" | "created_at">
+>;
+
+export async function ListResourcesApi(): Promise<MarketingResource[]> {
+  const { data } = await apiClient.get<MarketingResource[] | ApiEnvelope<MarketingResource[]>>(
+    RESOURCES,
+    { params: { paginate: "false" } },
+  );
+  const rows = unwrapApiEnvelope(data);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function CreateResourceApi(payload: MarketingResourceInput): Promise<MarketingResource> {
+  const { data } = await apiClient.post<MarketingResource | ApiEnvelope<MarketingResource>>(
+    RESOURCES,
+    payload,
+  );
+  return unwrapApiEnvelope(data);
+}
+
+export async function UpdateResourceApi(
+  slug: string,
+  payload: MarketingResourceInput,
+): Promise<MarketingResource> {
+  const { data } = await apiClient.patch<MarketingResource | ApiEnvelope<MarketingResource>>(
+    `${RESOURCES}/${slug}`,
+    payload,
+  );
+  return unwrapApiEnvelope(data);
+}
+
+export async function DeleteResourceApi(slug: string): Promise<void> {
+  await apiClient.delete(`${RESOURCES}/${slug}`);
+}

@@ -17,6 +17,7 @@ import {
   resolveCoverUrl,
 } from "@/service/content";
 import { InviteContentAdminApi } from "@/service/users";
+import { ContentTabs } from "../_components/content-tabs";
 
 function fmtDate(iso: string | null) {
   if (!iso) return "—";
@@ -95,6 +96,10 @@ export default function PostsListPage() {
             New post
           </Link>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <ContentTabs />
       </div>
 
       {isSuperAdmin && inviteOpen ? <InviteWriterPanel /> : null}

@@ -251,3 +251,132 @@ export async function RetryAdminCampaignApi(
     delivered: number;
   };
 }
+
+// ---------------------------------------------------------------------------
+// Pending invites (console)
+// ---------------------------------------------------------------------------
+
+export type AdminInvite = {
+  id: string;
+  email: string;
+  role: string;
+  tier: string | null;
+  organization_name: string;
+  invited_by: string | null;
+  created_at: string | null;
+  expires_at: string | null;
+  expired: boolean;
+};
+
+export async function GetAdminInvitesApi(): Promise<AdminInvite[]> {
+  const { data } = await apiClient.get<AdminInvite[] | ApiEnvelope<AdminInvite[]>>(
+    "/api/admin/invites",
+  );
+  const rows = unwrapApiEnvelope(data);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function RevokeAdminInviteApi(id: string): Promise<void> {
+  await apiClient.delete(`/api/admin/invites/${id}`);
+}
+
+// ---------------------------------------------------------------------------
+// CRM connections across orgs
+// ---------------------------------------------------------------------------
+
+export type AdminCrmConnection = {
+  id: string;
+  organization_id: string | null;
+  organization_name: string;
+  provider: string;
+  status: string;
+  region: string;
+  api_domain: string;
+  token_expiry: string | null;
+  token_expired: boolean;
+  connected_by: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export async function GetAdminCrmConnectionsApi(): Promise<AdminCrmConnection[]> {
+  const { data } = await apiClient.get<AdminCrmConnection[] | ApiEnvelope<AdminCrmConnection[]>>(
+    "/api/admin/crm-connections",
+  );
+  const rows = unwrapApiEnvelope(data);
+  return Array.isArray(rows) ? rows : [];
+}
+
+// ---------------------------------------------------------------------------
+// Celery / queue health
+// ---------------------------------------------------------------------------
+
+export type CeleryHealth = {
+  workers: { name: string; active: number; reserved: number }[];
+  worker_count: number;
+  workers_ok: boolean;
+  queue_depth: number | null;
+  running: { worker: string; name: string; time_start: number | null }[];
+};
+
+export async function GetCeleryHealthApi(): Promise<CeleryHealth> {
+  const { data } = await apiClient.get<CeleryHealth | ApiEnvelope<CeleryHealth>>(
+    "/api/admin/celery/health",
+  );
+  return unwrapApiEnvelope(data) as CeleryHealth;
+}
+
+// ---------------------------------------------------------------------------
+// Webhook events (console Webhooks page)
+// ---------------------------------------------------------------------------
+
+export type WebhookEventRow = {
+  id: string;
+  source: string;
+  source_event_id: string;
+  event_type: string;
+  processing_status: string;
+  retry_count: number;
+  processed_at: string | null;
+  created_at: string;
+};
+
+export type WebhookEventDetail = WebhookEventRow & {
+  payload?: Record<string, unknown>;
+  processing_error?: string;
+  organization_name?: string | null;
+};
+
+export async function GetWebhookEventsApi(params: {
+  page?: number;
+  source?: string;
+  processing_status?: string;
+}): Promise<{ data: WebhookEventRow[]; count: number; total_pages: number }> {
+  const { data } = await apiClient.get<{
+    data: WebhookEventRow[];
+    count: number;
+    total_pages: number;
+  }>("/api/admin/webhooks", {
+    params: {
+      page: params.page ?? 1,
+      page_size: 25,
+      ...(params.source ? { source: params.source } : {}),
+      ...(params.processing_status ? { processing_status: params.processing_status } : {}),
+    },
+  });
+  return data;
+}
+
+export async function GetWebhookEventApi(id: string): Promise<WebhookEventDetail> {
+  const { data } = await apiClient.get<WebhookEventDetail | ApiEnvelope<WebhookEventDetail>>(
+    `/api/admin/webhooks/${id}`,
+  );
+  return unwrapApiEnvelope(data) as WebhookEventDetail;
+}
+
+export async function ReplayWebhookEventApi(id: string): Promise<{ status: string }> {
+  const { data } = await apiClient.post<{ status: string } | ApiEnvelope<{ status: string }>>(
+    `/api/admin/webhooks/${id}/replay`,
+  );
+  return unwrapApiEnvelope(data) as { status: string };
+}
