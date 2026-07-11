@@ -8,9 +8,11 @@ import { FiArrowRight, FiSearch } from "react-icons/fi";
 import { GetAdminOrgsApi } from "@/service/orgs";
 import { rqKeys } from "@/utils/constants";
 import { StatusBadge, TierBadge } from "./badges";
+import { Pagination, paginateRows } from "../_components/ui";
 
 export default function OrgsPage() {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const orgsQuery = useQuery({
@@ -63,7 +65,10 @@ export default function OrgsPage() {
           <input
             type="search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+          setSearch(e.target.value);
+          setPage(1);
+        }}
             placeholder="Search organisations…"
             className="w-72 rounded-full border border-surface-softer bg-white py-2 pl-9 pr-4 text-sm placeholder:text-ink-soft/70 focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
           />
@@ -76,7 +81,10 @@ export default function OrgsPage() {
             <button
               key={s}
               type="button"
-              onClick={() => setStatusFilter(s)}
+              onClick={() => {
+                setStatusFilter(s);
+                setPage(1);
+              }}
               className={`rounded-full px-3 py-1.5 font-code text-[0.6rem] font-bold uppercase tracking-[0.16em] transition-colors ${
                 statusFilter === s
                   ? "bg-navy-800 text-white"
@@ -97,6 +105,7 @@ export default function OrgsPage() {
       )}
 
       {orgsQuery.data && (
+        <>
         <div className="mt-6 overflow-x-auto rounded-2xl border border-surface-softer bg-white shadow-soft-lift">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -108,7 +117,7 @@ export default function OrgsPage() {
               </tr>
             </thead>
             <tbody>
-              {orgs.map((org) => (
+              {paginateRows(orgs, page, 25).map((org) => (
                 <tr
                   key={org.id}
                   className="border-b border-surface-softer/60 transition-colors hover:bg-surface-soft/40"
@@ -152,6 +161,8 @@ export default function OrgsPage() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} total={orgs.length} pageSize={25} onPage={setPage} />
+        </>
       )}
     </div>
   );

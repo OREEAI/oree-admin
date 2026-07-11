@@ -7,11 +7,13 @@ import { useQuery } from "@tanstack/react-query";
 import { GetAdminMailboxesApi, type AdminMailbox } from "@/service/resources";
 import { rqKeys } from "@/utils/constants";
 import { AdminTh, Pill } from "../_components/table";
+import { Pagination, paginateRows } from "../_components/ui";
 
 const STATUS_TABS = ["all", "active", "warming", "revoked", "pending"] as const;
 
 export default function MailboxesPage() {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [statusTab, setStatusTab] = useState<(typeof STATUS_TABS)[number]>("all");
 
   const query = useQuery({
@@ -76,7 +78,10 @@ export default function MailboxesPage() {
         <input
           type="search"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+          setSearch(e.target.value);
+          setPage(1);
+        }}
           placeholder="Search email or org…"
           className="w-72 rounded-full border border-surface-softer bg-white px-4 py-2 text-sm placeholder:text-ink-soft/70 focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
         />
@@ -85,7 +90,10 @@ export default function MailboxesPage() {
             <button
               key={t}
               type="button"
-              onClick={() => setStatusTab(t)}
+              onClick={() => {
+              setStatusTab(t);
+              setPage(1);
+            }}
               className={`rounded-full px-3 py-1.5 font-code text-[0.6rem] font-bold uppercase tracking-[0.15em] transition-colors ${
                 statusTab === t
                   ? "bg-coral-50 text-coral-700"
@@ -106,6 +114,7 @@ export default function MailboxesPage() {
       )}
 
       {query.data && (
+        <>
         <div className="mt-6 overflow-x-auto rounded-2xl border border-surface-softer bg-white shadow-soft-lift">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -120,7 +129,7 @@ export default function MailboxesPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((m) => (
+              {paginateRows(rows, page, 25).map((m) => (
                 <MailboxRow key={m.id} m={m} />
               ))}
               {rows.length === 0 && (
@@ -136,6 +145,8 @@ export default function MailboxesPage() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} total={rows.length} pageSize={25} onPage={setPage} />
+        </>
       )}
     </div>
   );

@@ -206,3 +206,56 @@ export function StatePill({ value }: { value?: string }) {
     </span>
   );
 }
+
+/** Client-side pagination footer for list pages. Renders nothing when
+ * everything fits on one page. */
+export function Pagination({
+  page,
+  total,
+  pageSize,
+  onPage,
+}: {
+  page: number;
+  total: number;
+  pageSize: number;
+  onPage: (p: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  if (totalPages <= 1) return null;
+  const from = (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
+
+  return (
+    <div className="mt-4 flex items-center justify-between gap-4">
+      <span className="font-code text-[0.65rem] tabular-nums text-ink-soft">
+        {from.toLocaleString()}–{to.toLocaleString()} of {total.toLocaleString()}
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onPage(page - 1)}
+          disabled={page <= 1}
+          className="rounded-full border border-surface-softer bg-white px-4 py-1.5 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-muted transition-colors hover:border-coral hover:text-coral disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Previous
+        </button>
+        <span className="font-code text-[0.65rem] tabular-nums text-ink-muted">
+          {page} / {totalPages}
+        </span>
+        <button
+          type="button"
+          onClick={() => onPage(page + 1)}
+          disabled={page >= totalPages}
+          className="rounded-full border border-surface-softer bg-white px-4 py-1.5 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-muted transition-colors hover:border-coral hover:text-coral disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Clamp + slice helper for client-side pagination. */
+export function paginateRows<T>(rows: T[], page: number, pageSize: number): T[] {
+  return rows.slice((page - 1) * pageSize, page * pageSize);
+}

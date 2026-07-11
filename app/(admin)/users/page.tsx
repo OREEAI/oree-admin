@@ -7,9 +7,11 @@ import { useQuery } from "@tanstack/react-query";
 import { GetAdminUsersApi } from "@/service/users";
 import { rqKeys } from "@/utils/constants";
 import { StatusBadge, TierBadge } from "../orgs/badges";
+import { Pagination, paginateRows } from "../_components/ui";
 
 export default function UsersPage() {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const usersQuery = useQuery({
     queryKey: [rqKeys.adminUsers],
@@ -42,7 +44,10 @@ export default function UsersPage() {
       <input
         type="search"
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setPage(1);
+        }}
         placeholder="Search by name, email, or organisation…"
         className="mt-6 w-80 rounded-full border border-surface-softer bg-white px-4 py-2 text-sm placeholder:text-ink-soft/70 focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
       />
@@ -74,7 +79,7 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
+                {paginateRows(users, page, 25).map((u) => (
                   <tr
                     key={u.id}
                     className="border-b border-surface-softer/60 transition-colors hover:bg-surface-soft/40"
@@ -117,6 +122,7 @@ export default function UsersPage() {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} total={users.length} pageSize={25} onPage={setPage} />
         </>
       )}
     </div>

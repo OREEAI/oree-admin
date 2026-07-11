@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { GetAdminDomainsApi } from "@/service/resources";
 import { rqKeys } from "@/utils/constants";
 import { AdminTh, Pill } from "../_components/table";
+import { Pagination, paginateRows } from "../_components/ui";
 
 function fmtDate(iso: string | null) {
   if (!iso) return "—";
@@ -23,6 +24,7 @@ function fmtDate(iso: string | null) {
 
 export default function DomainsPage() {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const query = useQuery({
     queryKey: [rqKeys.domains],
@@ -54,7 +56,10 @@ export default function DomainsPage() {
       <input
         type="search"
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setPage(1);
+        }}
         placeholder="Search domain or org…"
         className="mt-6 w-72 rounded-full border border-surface-softer bg-white px-4 py-2 text-sm placeholder:text-ink-soft/70 focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
       />
@@ -67,6 +72,7 @@ export default function DomainsPage() {
       )}
 
       {query.data && (
+        <>
         <div className="mt-6 overflow-x-auto rounded-2xl border border-surface-softer bg-white shadow-soft-lift">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -80,7 +86,7 @@ export default function DomainsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((d) => (
+              {paginateRows(rows, page, 25).map((d) => (
                 <tr
                   key={d.id}
                   className="border-b border-surface-softer/60 transition-colors hover:bg-surface-soft/40"
@@ -122,6 +128,8 @@ export default function DomainsPage() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} total={rows.length} pageSize={25} onPage={setPage} />
+        </>
       )}
     </div>
   );
