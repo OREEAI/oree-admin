@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <mask id="oree-favicon-hole">
+      <rect width="100" height="100" fill="white"/>
+      <circle cx="50" cy="50" r="28" fill="black"/>
+    </mask>
+  </defs>
+  <!-- Coral ring (thinner proportions to match brand asset) -->
+  <circle cx="50" cy="50" r="48" fill="#F24E2E" mask="url(#oree-favicon-hole)"/>
+  <!-- Tongue bump centred on the inner-right wall -->
+  <circle cx="78" cy="50" r="11" fill="#F24E2E"/>
+</svg>

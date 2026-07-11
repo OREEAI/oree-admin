@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { OreeWordmark } from "@/components/brand/oree-logo";
 import { useStoredAuth } from "@/hooks/useAuth";
 import { LoginMutation } from "@/hooks/useUser";
 import { getApiErrorMessage } from "@/service/api";
@@ -54,10 +55,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-surface-soft px-6 text-ink">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mb-4 inline-flex items-center gap-2">
-            <span className="font-code text-sm font-bold uppercase tracking-[0.22em] text-coral">
-              Oree
-            </span>
+          <div className="mb-4 inline-flex items-center gap-2.5">
+            <OreeWordmark className="h-9 w-auto" />
             <span className="rounded-md bg-coral px-2 py-1 font-code text-[0.6rem] font-bold uppercase tracking-[0.2em] text-white">
               Admin
             </span>
@@ -66,7 +65,7 @@ export default function LoginPage() {
             Admin console.
           </h1>
           <p className="mt-3 text-sm text-ink-muted">
-            Super-admin access only.
+            Internal team access only.
           </p>
         </div>
 

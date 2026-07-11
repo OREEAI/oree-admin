@@ -3,6 +3,21 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import {
+  FiActivity,
+  FiCheckCircle,
+  FiDatabase,
+  FiEdit3,
+  FiFileText,
+  FiGlobe,
+  FiGrid,
+  FiInbox,
+  FiMail,
+  FiSend,
+  FiThermometer,
+  FiUsers,
+  FiXCircle,
+} from "react-icons/fi";
 
 import { useUserQuery } from "@/hooks/useUser";
 import { type BlogPost, ListPostsApi } from "@/service/content";
@@ -75,10 +90,10 @@ function PlatformDashboard() {
 
       {/* Top-line stats */}
       <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Organisations" value={stats.totalOrgs} loading={loading} href="/orgs" />
-        <StatCard label="Active orgs" value={stats.activeOrgs} loading={loading} href="/orgs" />
-        <StatCard label="Blog posts" value={stats.totalPosts} loading={loading} href="/content/posts" />
-        <StatCard label="Published" value={stats.published} loading={loading} href="/content/posts" />
+        <StatCard icon={FiGrid} label="Organisations" value={stats.totalOrgs} loading={loading} href="/orgs" />
+        <StatCard icon={FiCheckCircle} label="Active orgs" value={stats.activeOrgs} loading={loading} href="/orgs" />
+        <StatCard icon={FiFileText} label="Blog posts" value={stats.totalPosts} loading={loading} href="/content/posts" />
+        <StatCard icon={FiSend} label="Published" value={stats.published} loading={loading} href="/content/posts" />
       </div>
 
       {/* Breakdowns */}
@@ -92,34 +107,38 @@ function PlatformDashboard() {
         Platform
       </h2>
       <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Leads in DB" value={p?.leads.total ?? 0} loading={!p} href="/orgs" />
-        <StatCard label="Unlinked pool" value={p?.leads.unlinked_pool ?? 0} loading={!p} href="/orgs" />
+        <StatCard icon={FiUsers} label="Leads in DB" value={p?.leads.total ?? 0} loading={!p} href="/orgs" />
+        <StatCard icon={FiDatabase} label="Unlinked pool" value={p?.leads.unlinked_pool ?? 0} loading={!p} href="/orgs" />
         <StatCard
           label="Mailboxes (active)"
+          icon={FiMail}
           value={p?.mailboxes.active ?? 0}
           loading={!p}
           href="/mailboxes"
         />
-        <StatCard label="Domains" value={p?.domains.total ?? 0} loading={!p} href="/domains" />
+        <StatCard icon={FiGlobe} label="Domains" value={p?.domains.total ?? 0} loading={!p} href="/domains" />
         <StatCard
           label="Campaigns running"
+          icon={FiSend}
           value={p?.campaigns.running ?? 0}
           loading={!p}
           href="/campaigns"
         />
         <StatCard
           label="Campaigns failed today"
+          icon={FiXCircle}
           value={p?.campaigns.failed_today ?? 0}
           loading={!p}
           href="/campaigns"
         />
         <StatCard
           label="Sent today"
+          icon={FiInbox}
           value={p?.mailboxes.sent_today ?? 0}
           loading={!p}
           href="/mailboxes"
         />
-        <StatCard label="Warming" value={p?.mailboxes.warming ?? 0} loading={!p} href="/mailboxes" />
+        <StatCard icon={FiThermometer} label="Warming" value={p?.mailboxes.warming ?? 0} loading={!p} href="/mailboxes" />
       </div>
 
       {/* Deliverability pulse — today's email events */}
@@ -203,10 +222,10 @@ function ContentDashboard() {
       </p>
 
       <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Blog posts" value={counts.total} loading={loading} href="/content/posts" />
-        <StatCard label="Published" value={counts.published} loading={loading} href="/content/posts" />
-        <StatCard label="Drafts" value={counts.draft} loading={loading} href="/content/posts" />
-        <StatCard label="Archived" value={counts.archived} loading={loading} href="/content/posts" />
+        <StatCard icon={FiFileText} label="Blog posts" value={counts.total} loading={loading} href="/content/posts" />
+        <StatCard icon={FiSend} label="Published" value={counts.published} loading={loading} href="/content/posts" />
+        <StatCard icon={FiEdit3} label="Drafts" value={counts.draft} loading={loading} href="/content/posts" />
+        <StatCard icon={FiActivity} label="Archived" value={counts.archived} loading={loading} href="/content/posts" />
       </div>
 
       <div className="mt-10 flex items-center justify-between">
@@ -263,17 +282,24 @@ function StatCard({
   value,
   loading,
   href,
+  icon: Icon,
 }: {
   label: string;
   value: number;
   loading: boolean;
   href: string;
+  icon?: React.ComponentType<{ className?: string }>;
 }) {
   return (
     <Link
       href={href}
-      className="rounded-2xl border border-surface-softer bg-white p-5 shadow-soft-lift transition-colors hover:border-coral"
+      className="group relative overflow-hidden rounded-2xl border border-surface-softer bg-white p-5 shadow-soft-lift transition-colors hover:border-coral"
     >
+      {Icon ? (
+        <span className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg bg-coral-50 text-coral transition-colors group-hover:bg-coral group-hover:text-white">
+          <Icon className="h-4 w-4" />
+        </span>
+      ) : null}
       <div className="font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
         {label}
       </div>
