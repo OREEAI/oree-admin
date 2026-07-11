@@ -74,6 +74,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     CONSOLE_ROLES.includes(userQuery.data.role) &&
     !contentAdminOffLimits;
 
+  // Session check failed for a NON-auth reason (API down, proxy 504,
+  // network) — say so instead of skeleton-ing forever (Jul 11: a proxy
+  // restart made the console look broken when only the API was
+  // unreachable).
+  if (hasStoredAuth && userQuery.isError && !isUnauthorizedError(userQuery.error)) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-surface-soft px-6">
+        <div className="max-w-sm text-center">
+          <p className="font-code text-[0.65rem] font-bold uppercase tracking-[0.2em] text-coral">
+            Can&apos;t reach the API
+          </p>
+          <p className="mt-3 text-sm text-ink-muted">
+            The console loaded but api.oreeai.com isn&apos;t answering. It may be
+            mid-deploy or the proxy may be restarting.
+          </p>
+          <button
+            type="button"
+            onClick={() => userQuery.refetch()}
+            className="mt-5 rounded-full bg-coral px-5 py-2 font-code text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-coral-700"
+          >
+            {userQuery.isFetching ? "Retrying…" : "Retry"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!isReady) {
     return <AdminShellSkeleton />;
   }
