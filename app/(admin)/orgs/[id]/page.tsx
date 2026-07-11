@@ -4,6 +4,16 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  FiCheckCircle,
+  FiCreditCard,
+  FiDatabase,
+  FiGlobe,
+  FiMail,
+  FiSliders,
+  FiTarget,
+  FiUsers,
+} from "react-icons/fi";
 
 import { getApiErrorMessage } from "@/service/api";
 import {
@@ -74,141 +84,171 @@ export default function OrgDetailPage() {
 
       {org && (
         <>
-          <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="text-[2rem] font-semibold leading-tight tracking-tight text-ink">
-                {org.organization_name}
-              </h1>
-              <div className="mt-3 flex items-center gap-2">
-                <TierBadge tier={org.tier} />
-                <StatusBadge status={org.status} />
-                <span className="font-code text-[0.6rem] text-ink-soft">{org.id}</span>
+          {/* Header: identity left, admin actions right. */}
+          <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-navy-800 font-code text-xl font-bold text-white">
+                {org.organization_name.trim().charAt(0).toUpperCase() || "?"}
+              </span>
+              <div>
+                <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">
+                  {org.organization_name}
+                </h1>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <TierBadge tier={org.tier} />
+                  <StatusBadge status={org.status} />
+                  <span className="font-code text-[0.6rem] text-ink-soft">
+                    Since{" "}
+                    {org.created_at ? new Date(org.created_at).toLocaleDateString() : "—"}
+                    {" · "}
+                    {org.id}
+                  </span>
+                </div>
               </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <HeaderAction
+                icon={FiSliders}
+                label="Override tier"
+                onClick={() => setTierOpen(true)}
+              />
+              <HeaderAction
+                icon={FiDatabase}
+                label="Lead cap"
+                onClick={() => setCapOpen(true)}
+              />
+              <HeaderAction
+                icon={FiCreditCard}
+                label="Refund"
+                onClick={() => setRefundOpen(true)}
+              />
             </div>
           </div>
 
           {/* Counts */}
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <Stat label="Users" value={org.counts?.users} />
-            <Stat label="Active" value={org.counts?.active_users} />
-            <Stat label="Leads" value={org.counts?.leads} />
-            <Stat label="Mailboxes" value={org.counts?.mailboxes} />
-            <Stat label="Domains" value={org.counts?.domains} />
-            <Stat label="ICPs" value={org.counts?.icps} />
+          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <Stat icon={FiUsers} label="Users" value={org.counts?.users} />
+            <Stat icon={FiCheckCircle} label="Active" value={org.counts?.active_users} />
+            <Stat icon={FiDatabase} label="Leads" value={org.counts?.leads} />
+            <Stat icon={FiMail} label="Mailboxes" value={org.counts?.mailboxes} />
+            <Stat icon={FiGlobe} label="Domains" value={org.counts?.domains} />
+            <Stat icon={FiTarget} label="ICPs" value={org.counts?.icps} />
           </div>
 
-          {/* Overview */}
-          <div className="mt-6 rounded-2xl border border-surface-softer bg-white p-6 shadow-soft-lift">
-            <p className="font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-coral">
-              Overview
-            </p>
-            <dl className="mt-4 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
-              <Info
-                label="Subscription"
-                value={`${org.subscription?.tier || org.tier || "—"} · ${org.subscription?.status || "—"}`}
-              />
-              <Info label="Seats" value={org.subscription?.seats ?? "—"} />
-              <Info
-                label="Org lead capacity (sum of users)"
-                value={`${(org.lead_capacity?.total_used ?? 0).toLocaleString()} / ${(org.lead_capacity?.total_cap ?? 0).toLocaleString()}`}
-              />
-              <Info label="Daily email limit" value={org.daily_email_limit ?? "—"} />
-              <Info
-                label="Lead source"
-                value={
-                  <LeadSourceSelect
-                    orgId={orgId}
-                    provider={org.lead_source_provider}
-                    onSaved={() =>
-                      queryClient.invalidateQueries({ queryKey: [rqKeys.orgs, orgId] })
-                    }
-                  />
-                }
-              />
-              <Info label="Content model" value={org.content_generation_model || "—"} />
-              <Info label="Assistant model" value={org.assistant_model || "—"} />
-              <Info
-                label="Created"
-                value={org.created_at ? new Date(org.created_at).toLocaleDateString() : "—"}
-              />
-            </dl>
-          </div>
-
-          {/* Members */}
-          <div className="mt-6 overflow-hidden rounded-2xl border border-surface-softer bg-white shadow-soft-lift">
-            <p className="px-6 py-4 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-coral">
-              Members ({members.length})
-            </p>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="border-y border-surface-softer bg-surface-soft/50">
-                    <Th className="pl-6">User</Th>
-                    <Th>Role</Th>
-                    <Th>Subscription</Th>
-                    <Th className="pr-6">Status</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {members.map((u) => (
-                    <tr key={u.id} className="border-b border-surface-softer/60">
-                      <td className="py-3 pl-6 pr-4">
-                        <Link href={`/users/${u.id}`} className="font-medium text-ink hover:text-coral">
-                          {u.full_name || u.email}
-                        </Link>
-                        {u.full_name ? <div className="text-xs text-ink-soft">{u.email}</div> : null}
-                      </td>
-                      <td className="py-3 pr-4 text-ink-muted">{u.role}</td>
-                      <td className="py-3 pr-4">
-                        <MemberTierSelect
-                          userId={u.id}
-                          tier={u.tier}
-                          onSaved={() => {
-                            membersQuery.refetch();
-                            orgQuery.refetch();
-                          }}
-                        />
-                      </td>
-                      <td className="py-3 pr-6">
-                        <StatusBadge status={u.status} />
-                      </td>
+          {/* Body: members lead, plan/config details support. */}
+          <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
+            {/* Members */}
+            <div className="overflow-hidden rounded-2xl border border-surface-softer bg-white shadow-soft-lift xl:col-span-2">
+              <p className="px-6 py-4 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+                Members ({members.length})
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-y border-surface-softer bg-surface-soft/50">
+                      <Th className="pl-6">User</Th>
+                      <Th>Role</Th>
+                      <Th>Subscription</Th>
+                      <Th className="pr-6">Status</Th>
                     </tr>
-                  ))}
-                  {members.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-sm text-ink-soft">
-                        {membersQuery.isPending ? "Loading members…" : "No users in this org."}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {members.map((u) => (
+                      <tr
+                        key={u.id}
+                        className="border-b border-surface-softer/60 transition-colors hover:bg-surface-soft/40"
+                      >
+                        <td className="py-3 pl-6 pr-4">
+                          <Link href={`/users/${u.id}`} className="group flex items-center gap-3">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-navy-800 font-code text-xs font-bold text-white">
+                              {(u.full_name || u.email).trim().charAt(0).toUpperCase()}
+                            </span>
+                            <span>
+                              <span className="block font-medium text-ink transition-colors group-hover:text-coral">
+                                {u.full_name || u.email}
+                              </span>
+                              {u.full_name ? (
+                                <span className="block text-xs text-ink-soft">{u.email}</span>
+                              ) : null}
+                            </span>
+                          </Link>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <RoleBadge role={u.role} />
+                        </td>
+                        <td className="py-3 pr-4">
+                          <MemberTierSelect
+                            userId={u.id}
+                            tier={u.tier}
+                            onSaved={() => {
+                              membersQuery.refetch();
+                              orgQuery.refetch();
+                            }}
+                          />
+                        </td>
+                        <td className="py-3 pr-6">
+                          <StatusBadge status={u.status} />
+                        </td>
+                      </tr>
+                    ))}
+                    {members.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-8 text-center text-sm text-ink-soft">
+                          {membersQuery.isPending ? "Loading members…" : "No users in this org."}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
 
-          {/* Actions */}
-          <p className="mt-8 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
-            Actions
-          </p>
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <ActionCard
-              title="Override tier"
-              description="Manually set this org's subscription tier. Respected immediately and cleared by the next Stripe webhook or the optional expiry."
-              actionLabel="Override tier"
-              onClick={() => setTierOpen(true)}
-            />
-            <ActionCard
-              title="Issue refund"
-              description="Issue a Stripe refund on a charge, or credit the customer's balance. Creates a Transaction row on the org's billing page."
-              actionLabel="Issue refund"
-              onClick={() => setRefundOpen(true)}
-            />
-            <ActionCard
-              title="Monthly lead cap"
-              description="Override how many leads this org can source per month, independent of its tier default. Use for custom accounts that need more headroom."
-              actionLabel="Set lead cap"
-              onClick={() => setCapOpen(true)}
-            />
+            {/* Plan & configuration */}
+            <div className="rounded-2xl border border-surface-softer bg-white p-6 shadow-soft-lift">
+              <p className="font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+                Plan &amp; configuration
+              </p>
+
+              {/* Lead capacity gets a real usage bar, not a bare fraction. */}
+              <div className="mt-5">
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className="text-ink">Lead capacity</span>
+                  <span className="font-code text-xs tabular-nums text-ink-muted">
+                    {(org.lead_capacity?.total_used ?? 0).toLocaleString()} /{" "}
+                    {(org.lead_capacity?.total_cap ?? 0).toLocaleString()}
+                  </span>
+                </div>
+                <UsageBar
+                  used={org.lead_capacity?.total_used ?? 0}
+                  cap={org.lead_capacity?.total_cap ?? 0}
+                />
+                <p className="mt-1 text-[0.7rem] text-ink-soft">Sum of every seat&apos;s allowance.</p>
+              </div>
+
+              <dl className="mt-5 divide-y divide-surface-softer/70">
+                <DetailRow
+                  label="Subscription"
+                  value={`${org.subscription?.tier || org.tier || "—"} · ${org.subscription?.status || "—"}`}
+                />
+                <DetailRow label="Seats" value={org.subscription?.seats ?? "—"} />
+                <DetailRow label="Daily email limit" value={org.daily_email_limit ?? "—"} />
+                <DetailRow
+                  label="Lead source"
+                  value={
+                    <LeadSourceSelect
+                      orgId={orgId}
+                      provider={org.lead_source_provider}
+                      onSaved={() =>
+                        queryClient.invalidateQueries({ queryKey: [rqKeys.orgs, orgId] })
+                      }
+                    />
+                  }
+                />
+                <DetailRow label="Content model" value={org.content_generation_model || "—"} />
+                <DetailRow label="Assistant model" value={org.assistant_model || "—"} />
+              </dl>
+            </div>
           </div>
         </>
       )}
@@ -236,54 +276,91 @@ export default function OrgDetailPage() {
   );
 }
 
-function ActionCard({
-  title,
-  description,
-  actionLabel,
-  onClick,
+function Stat({
+  label,
+  value,
+  icon: Icon,
 }: {
-  title: string;
-  description: string;
-  actionLabel: string;
-  onClick: () => void;
+  label: string;
+  value?: number;
+  icon?: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="flex flex-col rounded-2xl border border-surface-softer bg-white p-6 shadow-soft-lift">
-      <p className="font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-coral">
-        {title}
-      </p>
-      <p className="mt-2 flex-1 text-sm text-ink-muted">{description}</p>
-      <button
-        type="button"
-        onClick={onClick}
-        className="mt-5 self-start rounded-full border border-ink/15 bg-white px-4 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.2em] text-ink transition-colors hover:border-coral hover:text-coral"
-      >
-        {actionLabel}
-      </button>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value?: number }) {
-  return (
-    <div className="rounded-xl border border-surface-softer bg-white px-4 py-3 shadow-soft-lift">
+    <div className="relative rounded-xl border border-surface-softer bg-white px-4 py-3 shadow-soft-lift">
+      {Icon ? (
+        <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-md bg-coral-50 text-coral">
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+      ) : null}
       <p className="font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-ink-soft">
         {label}
       </p>
-      <p className="mt-1 text-xl font-semibold text-ink">
+      <p className="mt-1 font-code text-xl font-bold tabular-nums text-ink">
         {value != null ? value.toLocaleString() : "—"}
       </p>
     </div>
   );
 }
 
-function Info({ label, value }: { label: string; value: React.ReactNode }) {
+function HeaderAction({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
+}) {
   return (
-    <div>
-      <dt className="font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-ink-soft">
-        {label}
-      </dt>
-      <dd className="mt-0.5 text-sm text-ink">{value}</dd>
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-2 rounded-full border border-surface-softer bg-white px-4 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-muted transition-colors hover:border-coral hover:text-coral"
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
+  );
+}
+
+function RoleBadge({ role }: { role?: string }) {
+  if (!role) return <span className="text-ink-soft">—</span>;
+  const r = role.toLowerCase();
+  const tone =
+    r === "super_admin"
+      ? "bg-navy-800 text-white"
+      : r === "org_admin"
+        ? "bg-navy-100 text-navy-700"
+        : r === "content_admin"
+          ? "bg-coral/10 text-coral"
+          : "bg-ink/5 text-ink-muted";
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-code text-[0.58rem] font-bold uppercase tracking-[0.16em] ${tone}`}
+    >
+      {role.replace(/_/g, " ")}
+    </span>
+  );
+}
+
+function UsageBar({ used, cap }: { used: number; cap: number }) {
+  const pct = cap > 0 ? Math.min((used / cap) * 100, 100) : 0;
+  const color = pct >= 90 ? "#D33A1C" : pct >= 70 ? "#F2A93B" : "#F24E2E";
+  return (
+    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface-soft">
+      <div
+        className="h-full rounded-full transition-all"
+        style={{ width: `${pct}%`, backgroundColor: color }}
+      />
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-2.5 text-sm">
+      <dt className="shrink-0 text-ink-muted">{label}</dt>
+      <dd className="text-right font-medium capitalize text-ink">{value}</dd>
     </div>
   );
 }
