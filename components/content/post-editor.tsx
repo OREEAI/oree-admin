@@ -371,9 +371,16 @@ export function PostEditor({ slug }: { slug?: string }) {
               type="button"
               onClick={() => coverFileRef.current?.click()}
               disabled={coverUploadMut.isPending}
-              className="mb-3 w-full rounded-full border border-surface-softer bg-white px-4 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-muted transition-colors hover:border-coral hover:text-coral disabled:cursor-wait disabled:opacity-60"
+              className="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-navy-800 px-4 py-2.5 font-code text-[0.62rem] font-bold uppercase tracking-[0.18em] text-white transition-colors hover:bg-navy-700 disabled:cursor-wait disabled:opacity-60"
             >
-              {coverUploadMut.isPending ? "Uploading…" : "Upload image from computer"}
+              {coverUploadMut.isPending ? (
+                "Uploading…"
+              ) : (
+                <>
+                  <FiUpload className="h-3.5 w-3.5" />
+                  Upload image from computer
+                </>
+              )}
             </button>
             <label className={labelCls} htmlFor="cover">
               Or paste an image URL
