@@ -14,6 +14,7 @@ import {
   ListPostsApi,
   POST_STATUSES,
   type PostStatus,
+  resolveCoverUrl,
 } from "@/service/content";
 import { InviteContentAdminApi } from "@/service/users";
 
@@ -178,10 +179,10 @@ function PostCard({ post }: { post: BlogPost }) {
     >
       {/* Cover — real image when set, branded navy fallback when not. */}
       <div className="relative aspect-[16/9] overflow-hidden bg-navy-900">
-        {post.cover_image_url ? (
+        {resolveCoverUrl(post.cover_image_url) ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={post.cover_image_url}
+            src={resolveCoverUrl(post.cover_image_url)}
             alt=""
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />

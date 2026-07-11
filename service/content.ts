@@ -73,6 +73,17 @@ export type BlogPostInput = {
 const POSTS = "/api/marketing/admin/posts";
 const AUTHORS = "/api/marketing/admin/authors";
 
+// Cover images are stored as root-relative paths ("/cold-outreach-2026.jpg")
+// served by the marketing site, not this console — resolve them against
+// oreeai.com or they 404 on admin.oreeai.com.
+const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_ORIGIN || "https://oreeai.com";
+
+export function resolveCoverUrl(url?: string | null): string {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return url.startsWith("/") ? SITE_ORIGIN + url : SITE_ORIGIN + "/" + url;
+}
+
 export async function ListPostsApi(status?: PostStatus): Promise<BlogPost[]> {
   const { data } = await apiClient.get<BlogPost[] | ApiEnvelope<BlogPost[]>>(POSTS, {
     params: { paginate: "false", ...(status ? { status } : {}) },
