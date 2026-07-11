@@ -17,6 +17,7 @@ import {
   PublishPostApi,
   UnpublishPostApi,
   UpdatePostApi,
+  resolveCoverUrl,
 } from "@/service/content";
 
 const labelCls =
@@ -209,97 +210,140 @@ export function PostEditor({ slug }: { slug?: string }) {
         </p>
       )}
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left: meta fields */}
-        <div className="space-y-4 lg:col-span-1">
-          <div>
-            <label className={labelCls} htmlFor="title">
-              Title
-            </label>
-            <input
-              id="title"
-              value={form.title}
-              onChange={(e) => set("title", e.target.value)}
-              className={inputCls}
-            />
-          </div>
-
-          <div>
-            <label className={labelCls} htmlFor="slug">
-              Slug {isEdit && <span className="text-ink-soft/70">(locked)</span>}
-            </label>
+      <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        {/* Main: title + MDX editor. The content is the page. */}
+        <div className="min-w-0">
+          <input
+            id="title"
+            value={form.title}
+            onChange={(e) => set("title", e.target.value)}
+            placeholder="Post title"
+            className="w-full border-0 border-b-2 border-surface-softer bg-transparent pb-2 text-[1.6rem] font-semibold leading-tight tracking-tight text-ink placeholder:text-ink-soft/50 focus:border-coral focus:outline-none focus:ring-0"
+          />
+          <div className="mt-2 flex items-center gap-2">
+            <span className="font-code text-[0.55rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+              Slug
+            </span>
             <input
               id="slug"
               value={form.slug ?? ""}
               onChange={(e) => set("slug", e.target.value)}
               disabled={isEdit}
               placeholder="auto-generated from title"
-              className={`${inputCls} disabled:bg-surface-soft disabled:text-ink-muted`}
+              className="flex-1 rounded-md border border-transparent bg-transparent px-1 py-0.5 font-code text-xs text-ink-muted focus:border-surface-softer focus:bg-white focus:outline-none disabled:text-ink-soft"
+            />
+            {isEdit ? (
+              <span className="rounded bg-ink/5 px-1.5 py-0.5 font-code text-[0.5rem] font-bold uppercase tracking-[0.16em] text-ink-soft">
+                locked
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-5 rounded-lg border border-surface-softer bg-surface-soft/40 p-1.5">
+            <MdxToolbar
+              taRef={bodyRef}
+              value={form.body_mdx}
+              onChange={(v) => set("body_mdx", v)}
             />
           </div>
-
-          <div>
-            <label className={labelCls} htmlFor="author">
-              Author
-            </label>
-            <select
-              id="author"
-              value={form.author_fk ?? ""}
-              onChange={(e) => set("author_fk", e.target.value || null)}
-              className={inputCls}
-            >
-              <option value="">— None —</option>
-              {(authorsQuery.data ?? []).map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
+          <div className="mt-1.5 grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <div>
+              <p className="mb-1.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.2em] text-ink-soft">
+                Write (MDX)
+              </p>
+              <textarea
+                ref={bodyRef}
+                value={form.body_mdx}
+                onChange={(e) => set("body_mdx", e.target.value)}
+                spellCheck={false}
+                placeholder="# Write your post in Markdown / MDX…"
+                className="h-[36rem] w-full resize-none rounded-lg border border-surface-softer bg-white px-3 py-2 font-mono text-[0.8rem] leading-relaxed text-ink focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
+              />
+            </div>
+            <div>
+              <p className="mb-1.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.2em] text-ink-soft">
+                Preview
+              </p>
+              <div
+                className="md-preview h-[36rem] overflow-y-auto rounded-lg border border-surface-softer bg-white px-5 py-4 text-sm leading-relaxed text-ink"
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
+              />
+            </div>
           </div>
+          <p className="mt-2 text-[0.7rem] text-ink-soft">
+            Use the toolbar to format — or drop in a Stat / Callout / Pull block.
+            The preview is an approximation; the live site compiles the full MDX
+            on publish.
+          </p>
+        </div>
 
-          <div>
-            <label className={labelCls} htmlFor="category">
-              Category
-            </label>
-            <select
-              id="category"
-              value={form.category}
-              onChange={(e) => set("category", e.target.value)}
-              className={inputCls}
-            >
-              <option value="">— None —</option>
-              {POST_CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* Side rail: publishing settings, grouped. */}
+        <div className="space-y-4">
+          <SidePanel title="Publishing">
+            <div className="space-y-3">
+              <div>
+                <label className={labelCls} htmlFor="author">
+                  Author
+                </label>
+                <select
+                  id="author"
+                  value={form.author_fk ?? ""}
+                  onChange={(e) => set("author_fk", e.target.value || null)}
+                  className={inputCls}
+                >
+                  <option value="">— None —</option>
+                  {(authorsQuery.data ?? []).map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls} htmlFor="category">
+                  Category
+                </label>
+                <select
+                  id="category"
+                  value={form.category}
+                  onChange={(e) => set("category", e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">— None —</option>
+                  {POST_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <label className="flex items-center justify-between gap-2 rounded-lg border border-surface-softer px-3 py-2.5">
+                <span className="text-sm text-ink">Featured (blog index hero)</span>
+                <input
+                  type="checkbox"
+                  checked={form.featured}
+                  onChange={(e) => set("featured", e.target.checked)}
+                  className="h-4 w-4 rounded border-surface-softer text-coral focus:ring-coral/30"
+                />
+              </label>
+            </div>
+          </SidePanel>
 
-          <div>
-            <label className={labelCls} htmlFor="tags">
-              Tags <span className="text-ink-soft/70">(comma-separated)</span>
-            </label>
-            <input
-              id="tags"
-              value={tagsText}
-              onChange={(e) => setTagsText(e.target.value)}
-              placeholder="cold-email, frameworks"
-              className={inputCls}
-            />
-          </div>
-
-          <label className="flex items-center gap-2 pt-1">
-            <input
-              type="checkbox"
-              checked={form.featured}
-              onChange={(e) => set("featured", e.target.checked)}
-              className="h-4 w-4 rounded border-surface-softer text-coral focus:ring-coral/30"
-            />
-            <span className="text-sm text-ink">Featured (blog index hero)</span>
-          </label>
-
-          <div>
+          <SidePanel title="Cover">
+            {resolveCoverUrl(form.cover_image_url) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={resolveCoverUrl(form.cover_image_url)}
+                alt=""
+                className="mb-3 aspect-[16/9] w-full rounded-lg border border-surface-softer object-cover"
+              />
+            ) : (
+              <div className="mb-3 flex aspect-[16/9] w-full items-center justify-center rounded-lg bg-navy-900">
+                <span className="font-code text-[0.6rem] font-bold uppercase tracking-[0.2em] text-white/40">
+                  No cover set
+                </span>
+              </div>
+            )}
             <label className={labelCls} htmlFor="cover">
               Cover image URL
             </label>
@@ -310,26 +354,39 @@ export function PostEditor({ slug }: { slug?: string }) {
               placeholder="/cover.jpeg or https://…"
               className={inputCls}
             />
-          </div>
+          </SidePanel>
 
-          <div>
-            <label className={labelCls} htmlFor="excerpt">
-              Excerpt
-            </label>
-            <textarea
-              id="excerpt"
-              value={form.excerpt}
-              onChange={(e) => set("excerpt", e.target.value)}
-              rows={3}
-              className={inputCls}
-            />
-          </div>
+          <SidePanel title="Listing">
+            <div className="space-y-3">
+              <div>
+                <label className={labelCls} htmlFor="tags">
+                  Tags <span className="text-ink-soft/70">(comma-separated)</span>
+                </label>
+                <input
+                  id="tags"
+                  value={tagsText}
+                  onChange={(e) => setTagsText(e.target.value)}
+                  placeholder="cold-email, frameworks"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls} htmlFor="excerpt">
+                  Excerpt
+                </label>
+                <textarea
+                  id="excerpt"
+                  value={form.excerpt}
+                  onChange={(e) => set("excerpt", e.target.value)}
+                  rows={3}
+                  className={inputCls}
+                />
+              </div>
+            </div>
+          </SidePanel>
 
-          <div className="rounded-xl border border-surface-softer p-3">
-            <p className="font-code text-[0.6rem] font-bold uppercase tracking-[0.16em] text-ink-soft">
-              SEO
-            </p>
-            <div className="mt-3 space-y-3">
+          <SidePanel title="SEO">
+            <div className="space-y-3">
               <div>
                 <label className={labelCls} htmlFor="seo-title">
                   Meta title
@@ -356,7 +413,7 @@ export function PostEditor({ slug }: { slug?: string }) {
                 />
               </div>
             </div>
-          </div>
+          </SidePanel>
 
           {isEdit && (
             <button
@@ -365,44 +422,24 @@ export function PostEditor({ slug }: { slug?: string }) {
                 if (confirm("Delete this post? This soft-deletes it.")) deleteMut.mutate();
               }}
               disabled={deleteMut.isPending}
-              className="text-xs font-medium text-coral hover:text-coral-700 disabled:cursor-not-allowed"
+              className="w-full rounded-full border border-coral/40 bg-white px-4 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-coral transition-colors hover:bg-coral hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               {deleteMut.isPending ? "Deleting…" : "Delete post"}
             </button>
           )}
         </div>
-
-        {/* Right: split-pane MDX editor + live preview */}
-        <div className="lg:col-span-2">
-          <label className={labelCls}>Body (MDX)</label>
-          <div className="mt-1.5 rounded-lg border border-surface-softer bg-surface-soft/40 p-1.5">
-            <MdxToolbar
-              taRef={bodyRef}
-              value={form.body_mdx}
-              onChange={(v) => set("body_mdx", v)}
-            />
-          </div>
-          <div className="mt-1.5 grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <textarea
-              ref={bodyRef}
-              value={form.body_mdx}
-              onChange={(e) => set("body_mdx", e.target.value)}
-              spellCheck={false}
-              placeholder="# Write your post in Markdown / MDX…"
-              className="h-[32rem] w-full resize-none rounded-lg border border-surface-softer bg-white px-3 py-2 font-mono text-[0.8rem] leading-relaxed text-ink focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
-            />
-            <div
-              className="md-preview h-[32rem] overflow-y-auto rounded-lg border border-surface-softer bg-surface-soft/30 px-4 py-3 text-sm leading-relaxed text-ink"
-              dangerouslySetInnerHTML={{ __html: previewHtml }}
-            />
-          </div>
-          <p className="mt-2 text-[0.7rem] text-ink-soft">
-            Use the toolbar to format — or drop in a Stat / Callout / Pull block.
-            Preview on the right is an approximation; the live site compiles the
-            full MDX on publish.
-          </p>
-        </div>
       </div>
+    </div>
+  );
+}
+
+function SidePanel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-surface-softer bg-white p-5 shadow-soft-lift">
+      <p className="mb-3 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+        {title}
+      </p>
+      {children}
     </div>
   );
 }
