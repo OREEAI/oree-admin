@@ -227,3 +227,27 @@ export async function GetAdminCampaignsApi(params?: {
   const rows = unwrapApiEnvelope(data);
   return Array.isArray(rows) ? rows : [];
 }
+
+/** Cancel a pending/running campaign run (revokes the Celery task). */
+export async function CancelAdminCampaignApi(id: string): Promise<{ id: string; status: string }> {
+  const { data } = await apiClient.post<
+    { id: string; status: string } | ApiEnvelope<{ id: string; status: string }>
+  >(`/api/admin/campaigns/${id}/cancel`);
+  return unwrapApiEnvelope(data) as { id: string; status: string };
+}
+
+/** Retry a failed/cancelled/short run — re-dispatches sourcing for the gap. */
+export async function RetryAdminCampaignApi(
+  id: string,
+): Promise<{ id: string; status: string; retry_gap: number; delivered: number }> {
+  const { data } = await apiClient.post<
+    | { id: string; status: string; retry_gap: number; delivered: number }
+    | ApiEnvelope<{ id: string; status: string; retry_gap: number; delivered: number }>
+  >(`/api/admin/campaigns/${id}/retry`);
+  return unwrapApiEnvelope(data) as {
+    id: string;
+    status: string;
+    retry_gap: number;
+    delivered: number;
+  };
+}

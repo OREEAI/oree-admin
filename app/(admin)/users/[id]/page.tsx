@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import {
   FiCheckCircle,
@@ -15,9 +16,10 @@ import {
   FiUsers,
 } from "react-icons/fi";
 
-import { GetAdminUserDetailApi } from "@/service/users";
+import { getApiErrorMessage } from "@/service/api";
+import { GetAdminUserDetailApi, UpdateAdminUserApi } from "@/service/users";
 import { rqKeys } from "@/utils/constants";
-import { AvatarChip, BackLink, RoleBadge, Stat, UsageBar } from "../../_components/ui";
+import { AvatarChip, BackLink, Panel, RoleBadge, Stat, UsageBar } from "../../_components/ui";
 import { StatusBadge, TierBadge } from "../../orgs/badges";
 
 export default function UserDetailPage() {
@@ -93,6 +95,14 @@ export default function UserDetailPage() {
               <UsageBar used={user.leads_used_this_month ?? 0} cap={user.monthly_lead_limit} />
             </div>
           ) : null}
+
+          <AccountOpsPanel
+            userId={userId}
+            isActive={user.status === "active"}
+            role={user.role}
+            monthlyLeadLimit={user.monthly_lead_limit ?? null}
+            onSaved={() => userQuery.refetch()}
+          />
 
           {/* Stat cards (last 30 days) */}
           <p className="mt-8 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
@@ -215,5 +225,171 @@ function Th({
     >
       {children}
     </th>
+  );
+}
+
+function AccountOpsPanel({
+  userId,
+  isActive,
+  role,
+  monthlyLeadLimit,
+  onSaved,
+}: {
+  userId: string;
+  isActive: boolean;
+  role: string;
+  monthlyLeadLimit: number | null;
+  onSaved: () => void;
+}) {
+  const [roleValue, setRoleValue] = useState(role);
+  const [capValue, setCapValue] = useState(monthlyLeadLimit != null ? String(monthlyLeadLimit) : "");
+  const [password, setPassword] = useState("");
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+
+  const mut = useMutation({
+    mutationFn: (payload: Parameters<typeof UpdateAdminUserApi>[1]) =>
+      UpdateAdminUserApi(userId, payload),
+    onMutate: () => {
+      setNotice("");
+      setError("");
+    },
+    onSuccess: () => {
+      setNotice("Saved.");
+      setPassword("");
+      onSaved();
+    },
+    onError: (e) => setError(getApiErrorMessage(e, "Couldn't save. Try again.")),
+  });
+
+  const genPassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    let out = "";
+    const buf = new Uint32Array(14);
+    crypto.getRandomValues(buf);
+    buf.forEach((n) => {
+      out += chars[n % chars.length];
+    });
+    setPassword(out);
+  };
+
+  return (
+    <div className="mt-6 grid grid-cols-1 items-start gap-4 xl:grid-cols-3">
+      <Panel title="Account">
+        <div className="mt-3 space-y-3">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-surface-softer px-3 py-2.5">
+            <div>
+              <p className="text-sm text-ink">Account active</p>
+              <p className="text-[0.7rem] text-ink-soft">Inactive users cannot sign in anywhere.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => mut.mutate({ is_active: !isActive })}
+              disabled={mut.isPending}
+              className={`rounded-full px-4 py-1.5 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] transition-colors disabled:opacity-50 ${
+                isActive
+                  ? "border border-coral/40 bg-white text-coral hover:bg-coral hover:text-white"
+                  : "bg-success text-white hover:bg-success/80"
+              }`}
+            >
+              {isActive ? "Deactivate" : "Activate"}
+            </button>
+          </div>
+
+          <div>
+            <p className="mb-1.5 font-code text-[0.6rem] font-bold uppercase tracking-[0.16em] text-ink-soft">
+              Role
+            </p>
+            <div className="flex gap-2">
+              <select
+                value={roleValue}
+                onChange={(e) => setRoleValue(e.target.value)}
+                className="flex-1 rounded-lg border border-surface-softer bg-white px-3 py-2 text-sm text-ink focus:border-coral focus:outline-none"
+              >
+                <option value="member">Member</option>
+                <option value="org_admin">Org admin</option>
+                <option value="content_admin">Content admin</option>
+                <option value="super_admin">Super admin</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => mut.mutate({ role: roleValue })}
+                disabled={mut.isPending || roleValue === role}
+                className="rounded-full bg-navy-800 px-4 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-white transition-colors hover:bg-navy-700 disabled:opacity-40"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      </Panel>
+
+      <Panel title="Set password">
+        <p className="mt-2 text-[0.7rem] text-ink-soft">
+          Sets a new password immediately — share it with the user over a safe channel.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <input
+            type="text"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="New password (min 8 chars)"
+            className="min-w-0 flex-1 rounded-lg border border-surface-softer bg-white px-3 py-2 font-code text-xs text-ink focus:border-coral focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={genPassword}
+            className="shrink-0 rounded-full border border-surface-softer bg-white px-3 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-muted transition-colors hover:border-coral hover:text-coral"
+          >
+            Generate
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={() => mut.mutate({ password })}
+          disabled={mut.isPending || password.length < 8}
+          className="mt-3 w-full rounded-full bg-coral px-4 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-white transition-colors hover:bg-coral-700 disabled:cursor-not-allowed disabled:bg-coral/40"
+        >
+          {mut.isPending ? "Saving…" : "Set password"}
+        </button>
+      </Panel>
+
+      <Panel title="Lead allowance">
+        <p className="mt-2 text-[0.7rem] text-ink-soft">
+          Custom monthly lead cap for this seat — drives their meter and sourcing limit. Blank =
+          inherit tier default.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <input
+            type="number"
+            min={0}
+            value={capValue}
+            onChange={(e) => setCapValue(e.target.value)}
+            placeholder="e.g. 700"
+            className="min-w-0 flex-1 rounded-lg border border-surface-softer bg-white px-3 py-2 font-code text-sm tabular-nums text-ink focus:border-coral focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() =>
+              mut.mutate({
+                monthly_lead_limit: capValue.trim() === "" ? null : Number(capValue),
+              })
+            }
+            disabled={mut.isPending}
+            className="shrink-0 rounded-full bg-navy-800 px-4 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-white transition-colors hover:bg-navy-700 disabled:opacity-40"
+          >
+            Save
+          </button>
+        </div>
+      </Panel>
+
+      {(notice || error) && (
+        <p
+          className={`xl:col-span-3 ${error ? "text-coral" : "text-success"} text-sm`}
+        >
+          {error || notice}
+        </p>
+      )}
+    </div>
   );
 }

@@ -1,13 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { FiCheckCircle, FiList, FiSend, FiTarget } from "react-icons/fi";
+import { FiCheckCircle, FiList, FiRefreshCw, FiSend, FiTarget, FiXCircle } from "react-icons/fi";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
-import { GetAdminCampaignDetailApi } from "@/service/resources";
+import { getApiErrorMessage } from "@/service/api";
+import {
+  CancelAdminCampaignApi,
+  GetAdminCampaignDetailApi,
+  RetryAdminCampaignApi,
+} from "@/service/resources";
 import { AdminTh, Pill } from "../../_components/table";
-import { BackLink, DetailList, DetailRow, Panel, Stat, StatePill } from "../../_components/ui";
+import { BackLink, DetailList, DetailRow, HeaderAction, Panel, Stat, StatePill } from "../../_components/ui";
 
 function fmt(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -39,6 +44,16 @@ export default function CampaignDetailPage() {
   });
   const c = query.data;
 
+  const cancelMut = useMutation({
+    mutationFn: () => CancelAdminCampaignApi(id),
+    onSuccess: () => query.refetch(),
+  });
+  const retryMut = useMutation({
+    mutationFn: () => RetryAdminCampaignApi(id),
+    onSuccess: () => query.refetch(),
+  });
+  const actionError = cancelMut.error || retryMut.error;
+
   return (
     <div>
       <BackLink href="/campaigns" label="Campaigns" />
@@ -62,7 +77,44 @@ export default function CampaignDetailPage() {
                 {c.user ? ` · ${c.user}` : ""}
               </p>
             </div>
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              {(c.status === "pending" || c.status === "running") && (
+                <HeaderAction
+                  icon={FiXCircle}
+                  label={cancelMut.isPending ? "Cancelling…" : "Cancel run"}
+                  danger
+                  disabled={cancelMut.isPending}
+                  onClick={() => {
+                    if (confirm("Cancel this campaign run? The Celery task is revoked.")) {
+                      cancelMut.mutate();
+                    }
+                  }}
+                />
+              )}
+              {(c.status === "failed" || c.status === "cancelled" || c.status === "completed") &&
+                c.delivered < c.lead_count && (
+                  <HeaderAction
+                    icon={FiRefreshCw}
+                    label={retryMut.isPending ? "Retrying…" : `Retry (${c.lead_count - c.delivered} short)`}
+                    disabled={retryMut.isPending}
+                    onClick={() => {
+                      if (
+                        confirm(
+                          `Re-run sourcing for the remaining ${c.lead_count - c.delivered} leads?`,
+                        )
+                      ) {
+                        retryMut.mutate();
+                      }
+                    }}
+                  />
+                )}
+            </div>
           </div>
+          {actionError ? (
+            <p className="mt-3 text-sm text-coral">
+              {getApiErrorMessage(actionError, "Action failed.")}
+            </p>
+          ) : null}
 
           <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Stat icon={FiCheckCircle} label="Delivered" value={c.delivered} />

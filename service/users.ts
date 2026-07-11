@@ -78,7 +78,13 @@ export async function GetAdminUserDetailApi(
  */
 export async function UpdateAdminUserApi(
   userId: string,
-  payload: { tier?: string; monthly_lead_limit?: number | null },
+  payload: {
+    tier?: string;
+    monthly_lead_limit?: number | null;
+    is_active?: boolean;
+    role?: string;
+    password?: string;
+  },
 ): Promise<{ id: string; tier: string | null; monthly_lead_limit: number | null }> {
   const { data } = await apiClient.patch<
     | { id: string; tier: string | null; monthly_lead_limit: number | null }
