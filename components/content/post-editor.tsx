@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { FiUpload } from "react-icons/fi";
 
 import { renderMarkdown } from "@/lib/markdown";
 import { getApiErrorMessage } from "@/service/api";
