@@ -231,7 +231,7 @@ function ContentDashboard() {
           recent.map((post) => (
             <Link
               key={post.slug}
-              href={`/content/posts/${post.slug}`}
+              href={`/content/posts/${post.slug}/edit`}
               className="flex items-center justify-between gap-4 border-b border-surface-softer/60 px-6 py-3.5 transition-colors last:border-b-0 hover:bg-surface-soft/50"
             >
               <span className="min-w-0 truncate text-sm font-medium text-ink">{post.title}</span>
