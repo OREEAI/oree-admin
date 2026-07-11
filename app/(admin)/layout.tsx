@@ -57,9 +57,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [router, userQuery.data, userQuery.isSuccess]);
 
-  // Content admins live in /content only — any other route bounces there.
+  // Content admins get the dashboard + /content only — any other route
+  // bounces to their content home.
   const isContentAdmin = userQuery.isSuccess && userQuery.data.role === CONTENT_ADMIN_ROLE;
-  const contentAdminOffLimits = isContentAdmin && !pathname.startsWith("/content");
+  const contentAdminOffLimits =
+    isContentAdmin && pathname !== "/" && !pathname.startsWith("/content");
   useEffect(() => {
     if (contentAdminOffLimits) {
       router.replace(CONTENT_HOME);

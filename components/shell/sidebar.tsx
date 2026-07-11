@@ -35,8 +35,10 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Webhooks", href: "/webhooks", icon: FiZap },
 ];
 
-// Content admins (blog authors) see only the Content section.
-const CONTENT_ADMIN_ITEMS = NAV_ITEMS.filter((item) => item.href === "/content");
+// Content admins (blog authors) see the dashboard + Content section only.
+const CONTENT_ADMIN_ITEMS = NAV_ITEMS.filter(
+  (item) => item.href === "/" || item.href === "/content",
+);
 
 export function Sidebar({ role }: { role?: string }) {
   const pathname = usePathname();

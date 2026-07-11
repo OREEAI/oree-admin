@@ -4,12 +4,22 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { ListPostsApi } from "@/service/content";
+import { useUserQuery } from "@/hooks/useUser";
+import { type BlogPost, ListPostsApi } from "@/service/content";
 import { GetAdminOrgsApi } from "@/service/orgs";
 import { GetPlatformStatsApi } from "@/service/resources";
 import { rqKeys } from "@/utils/constants";
 
 export default function AdminDashboardPage() {
+  const userQuery = useUserQuery();
+  const isContentAdmin = userQuery.data?.role === "content_admin";
+
+  if (userQuery.isPending) return null;
+  if (isContentAdmin) return <ContentDashboard />;
+  return <PlatformDashboard />;
+}
+
+function PlatformDashboard() {
   const orgsQuery = useQuery({
     queryKey: [rqKeys.orgs],
     queryFn: GetAdminOrgsApi,
@@ -148,6 +158,102 @@ export default function AdminDashboardPage() {
           Some data couldn&apos;t load. Check you&apos;re a super-admin and the API is reachable.
         </p>
       )}
+    </div>
+  );
+}
+
+function ContentDashboard() {
+  const postsQuery = useQuery({
+    queryKey: ["admin-posts", "all"],
+    queryFn: () => ListPostsApi(),
+    staleTime: 5 * 60_000,
+  });
+  const posts = postsQuery.data ?? [];
+  const loading = postsQuery.isPending;
+
+  const counts = useMemo(() => {
+    const by = (s: string) => posts.filter((p) => p.status === s).length;
+    return {
+      total: posts.length,
+      published: by("published"),
+      draft: by("draft"),
+      archived: by("archived"),
+    };
+  }, [posts]);
+
+  const recent: BlogPost[] = useMemo(
+    () =>
+      [...posts]
+        .sort((a, b) =>
+          String(b.published_at ?? b.created_at ?? "").localeCompare(
+            String(a.published_at ?? a.created_at ?? ""),
+          ),
+        )
+        .slice(0, 6),
+    [posts],
+  );
+
+  return (
+    <div>
+      <h1 className="text-[2rem] font-semibold leading-tight tracking-tight text-ink">
+        Content dashboard
+      </h1>
+      <p className="mt-3 text-sm text-ink-muted">
+        Your writing at a glance — posts, drafts and what&apos;s live on the blog.
+      </p>
+
+      <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Blog posts" value={counts.total} loading={loading} href="/content/posts" />
+        <StatCard label="Published" value={counts.published} loading={loading} href="/content/posts" />
+        <StatCard label="Drafts" value={counts.draft} loading={loading} href="/content/posts" />
+        <StatCard label="Archived" value={counts.archived} loading={loading} href="/content/posts" />
+      </div>
+
+      <div className="mt-10 flex items-center justify-between">
+        <h2 className="font-code text-[0.65rem] font-bold uppercase tracking-[0.2em] text-ink-soft">
+          Recent posts
+        </h2>
+        <Link
+          href="/content/posts/new"
+          className="rounded-full bg-coral px-4 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-coral-700"
+        >
+          New post
+        </Link>
+      </div>
+      <div className="mt-4 overflow-hidden rounded-2xl border border-surface-softer bg-white shadow-soft-lift">
+        {loading ? (
+          <p className="px-6 py-6 text-sm text-ink-soft">Loading posts…</p>
+        ) : recent.length === 0 ? (
+          <p className="px-6 py-6 text-sm text-ink-soft">
+            No posts yet. Your first one starts with the button above.
+          </p>
+        ) : (
+          recent.map((post) => (
+            <Link
+              key={post.slug}
+              href={`/content/posts/${post.slug}`}
+              className="flex items-center justify-between gap-4 border-b border-surface-softer/60 px-6 py-3.5 transition-colors last:border-b-0 hover:bg-surface-soft/50"
+            >
+              <span className="min-w-0 truncate text-sm font-medium text-ink">{post.title}</span>
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] ${
+                  post.status === "published"
+                    ? "bg-success/10 text-success"
+                    : post.status === "draft"
+                      ? "bg-coral/10 text-coral"
+                      : "bg-ink/5 text-ink-soft"
+                }`}
+              >
+                {post.status}
+              </span>
+            </Link>
+          ))
+        )}
+      </div>
+
+      {postsQuery.isError ? (
+        <p className="mt-6 text-sm text-coral">Couldn&apos;t load posts. Refresh to try again.</p>
+      ) : null}
     </div>
   );
 }
