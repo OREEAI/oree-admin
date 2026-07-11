@@ -78,7 +78,7 @@ export default function MailboxesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search email or org…"
-          className="w-72 rounded-lg border border-surface-softer bg-white px-3 py-2 text-sm placeholder:text-ink-soft/70 focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
+          className="w-72 rounded-full border border-surface-softer bg-white px-4 py-2 text-sm placeholder:text-ink-soft/70 focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
         />
         <div className="flex gap-1">
           {STATUS_TABS.map((t) => (

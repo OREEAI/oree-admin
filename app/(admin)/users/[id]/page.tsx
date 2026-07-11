@@ -4,8 +4,20 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
+import {
+  FiCheckCircle,
+  FiDatabase,
+  FiInbox,
+  FiLinkedin,
+  FiMail,
+  FiSend,
+  FiTarget,
+  FiUsers,
+} from "react-icons/fi";
+
 import { GetAdminUserDetailApi } from "@/service/users";
 import { rqKeys } from "@/utils/constants";
+import { AvatarChip, BackLink, RoleBadge, Stat, UsageBar } from "../../_components/ui";
 import { StatusBadge, TierBadge } from "../../orgs/badges";
 
 export default function UserDetailPage() {
@@ -26,12 +38,7 @@ export default function UserDetailPage() {
 
   return (
     <div>
-      <Link
-        href="/users"
-        className="font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-soft hover:text-coral"
-      >
-        ← All users
-      </Link>
+      <BackLink href="/users" label="All users" />
 
       {userQuery.isPending && (
         <p className="mt-6 text-sm text-ink-soft">Loading user…</p>
@@ -45,45 +52,66 @@ export default function UserDetailPage() {
 
       {user && (
         <>
-          <h1 className="mt-4 text-[2rem] font-semibold leading-tight tracking-tight text-ink">
-            {user.full_name || user.email}
-          </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="text-sm text-ink-muted">{user.email}</span>
-            <span className="text-ink-soft">·</span>
-            <span className="text-sm text-ink-muted">{user.role}</span>
-            <TierBadge tier={user.tier} />
-            <StatusBadge status={user.status} />
-            {user.organization_id ? (
-              <Link
-                href={`/orgs/${user.organization_id}`}
-                className="text-sm text-coral hover:text-coral-700"
-              >
-                {user.organization_name}
-              </Link>
-            ) : null}
+          <div className="mt-5 flex items-center gap-4">
+            <AvatarChip
+              label={user.full_name || user.email}
+              className="h-14 w-14 rounded-2xl text-xl"
+            />
+            <div>
+              <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">
+                {user.full_name || user.email}
+              </h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <span className="text-sm text-ink-muted">{user.email}</span>
+                <RoleBadge role={user.role} />
+                <TierBadge tier={user.tier} />
+                <StatusBadge status={user.status} />
+                {user.organization_id ? (
+                  <Link
+                    href={`/orgs/${user.organization_id}`}
+                    className="font-code text-[0.65rem] font-bold uppercase tracking-[0.16em] text-coral hover:text-coral-700"
+                  >
+                    {user.organization_name} →
+                  </Link>
+                ) : null}
+              </div>
+            </div>
           </div>
+
+          {/* Lead allowance as a real usage bar. */}
+          {user.monthly_lead_limit != null ? (
+            <div className="mt-6 max-w-md rounded-xl border border-surface-softer bg-white px-4 py-3 shadow-soft-lift">
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-ink-soft">
+                  Lead allowance this month
+                </span>
+                <span className="font-code text-xs tabular-nums text-ink">
+                  {(user.leads_used_this_month ?? 0).toLocaleString()} /{" "}
+                  {user.monthly_lead_limit.toLocaleString()}
+                </span>
+              </div>
+              <UsageBar used={user.leads_used_this_month ?? 0} cap={user.monthly_lead_limit} />
+            </div>
+          ) : null}
 
           {/* Stat cards (last 30 days) */}
           <p className="mt-8 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
             Last 30 days
           </p>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <Stat icon={FiUsers} label="Leads owned" value={stats.leads_assigned_total} />
+            <Stat icon={FiDatabase} label="New leads (30d)" value={stats.leads_assigned_window} />
+            <Stat icon={FiTarget} label="In sequence" value={stats.leads_in_sequence} />
+            <Stat icon={FiSend} label="Emails sent" value={stats.emails_sent_window} />
+            <Stat icon={FiInbox} label="Opened" value={stats.emails_opened_window} />
             <Stat
-              label="Lead cap"
-              value={
-                user.monthly_lead_limit != null
-                  ? `${(user.leads_used_this_month ?? 0).toLocaleString()} / ${user.monthly_lead_limit.toLocaleString()}`
-                  : "—"
-              }
+              icon={FiCheckCircle}
+              label="Replied"
+              value={stats.emails_replied_window}
+              tone={stats.emails_replied_window ? "success" : undefined}
             />
-            <Stat label="Leads owned" value={stats.leads_assigned_total} />
-            <Stat label="New leads (30d)" value={stats.leads_assigned_window} />
-            <Stat label="In sequence" value={stats.leads_in_sequence} />
-            <Stat label="Emails sent" value={stats.emails_sent_window} />
-            <Stat label="Opened" value={stats.emails_opened_window} />
-            <Stat label="Replied" value={stats.emails_replied_window} />
-            <Stat label="LinkedIn actions" value={stats.linkedin_actions_window} />
+            <Stat icon={FiLinkedin} label="LinkedIn actions" value={stats.linkedin_actions_window} />
+            <Stat icon={FiMail} label="Mailboxes" value={mailboxes.length} />
           </div>
 
           {/* Mailboxes */}
@@ -159,23 +187,10 @@ export default function UserDetailPage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value?: number | string }) {
-  return (
-    <div className="rounded-xl border border-surface-softer bg-white px-4 py-3 shadow-soft-lift">
-      <p className="font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-ink-soft">
-        {label}
-      </p>
-      <p className="mt-1 text-xl font-semibold text-ink">
-        {typeof value === "number" ? value.toLocaleString() : (value ?? "—")}
-      </p>
-    </div>
-  );
-}
-
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mt-6 overflow-hidden rounded-2xl border border-surface-softer bg-white shadow-soft-lift">
-      <p className="px-6 py-4 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-coral">
+      <p className="px-6 py-4 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
         {title}
       </p>
       <div className="overflow-x-auto">{children}</div>

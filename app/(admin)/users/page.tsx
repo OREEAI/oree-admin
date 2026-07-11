@@ -44,7 +44,7 @@ export default function UsersPage() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search by name, email, or organisation…"
-        className="mt-6 w-80 rounded-lg border border-surface-softer bg-white px-3 py-2 text-sm placeholder:text-ink-soft/70 focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
+        className="mt-6 w-80 rounded-full border border-surface-softer bg-white px-4 py-2 text-sm placeholder:text-ink-soft/70 focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
       />
 
       {usersQuery.isPending && (

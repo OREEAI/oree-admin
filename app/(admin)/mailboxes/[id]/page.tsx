@@ -4,8 +4,17 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
+import {
+  FiCheckCircle,
+  FiInbox,
+  FiMail,
+  FiSend,
+  FiXCircle,
+} from "react-icons/fi";
+
 import { GetAdminMailboxDetailApi, MailboxActionApi } from "@/service/resources";
 import { Pill } from "../../_components/table";
+import { BackLink, DetailList, DetailRow, Panel, Stat, StatePill, UsageBar } from "../../_components/ui";
 
 function fmt(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -41,31 +50,46 @@ export default function MailboxDetailPage() {
 
   return (
     <div>
-      <Link href="/mailboxes" className="font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-soft hover:text-coral">
-        ← Mailboxes
-      </Link>
+      <BackLink href="/mailboxes" label="Mailboxes" />
 
       {query.isPending && <p className="mt-8 text-sm text-ink-soft">Loading…</p>}
       {query.isError && <p className="mt-8 text-sm text-coral">Couldn&apos;t load mailbox.</p>}
 
       {m && (
         <>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-ink">{m.email_address}</h1>
-            <Pill label={m.status} tone={m.status === "active" ? "success" : "danger"} />
-            {m.can_send && <Pill label="can send" tone="success" />}
+          <div className="mt-5 flex flex-wrap items-center gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-navy-800 text-white">
+              <FiMail className="h-6 w-6" />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-semibold tracking-tight text-ink">{m.email_address}</h1>
+                <Pill label={m.status} tone={m.status === "active" ? "success" : "danger"} />
+                {m.can_send && <Pill label="can send" tone="success" />}
+              </div>
+              <p className="mt-1 text-sm text-ink-muted">
+                {m.organization_name} · {m.provider}
+                {m.assigned_user ? ` · ${m.assigned_user}` : ""}
+              </p>
+            </div>
           </div>
-          <p className="mt-1 text-sm text-ink-muted">
-            {m.organization_name} · {m.provider}
-            {m.assigned_user ? ` · ${m.assigned_user}` : ""}
-          </p>
 
           {/* Metrics */}
           <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Metric label="Sent" value={m.metrics?.SENT ?? 0} />
-            <Metric label="Opened" value={m.metrics?.OPEN ?? 0} />
-            <Metric label="Replied" value={m.metrics?.REPLY ?? 0} />
-            <Metric label="Bounced" value={m.metrics?.BOUNCE ?? 0} />
+            <Stat icon={FiSend} label="Sent" value={m.metrics?.SENT ?? 0} />
+            <Stat icon={FiInbox} label="Opened" value={m.metrics?.OPEN ?? 0} />
+            <Stat
+              icon={FiCheckCircle}
+              label="Replied"
+              value={m.metrics?.REPLY ?? 0}
+              tone={(m.metrics?.REPLY ?? 0) > 0 ? "success" : undefined}
+            />
+            <Stat
+              icon={FiXCircle}
+              label="Bounced"
+              value={m.metrics?.BOUNCE ?? 0}
+              tone={(m.metrics?.BOUNCE ?? 0) > 0 ? "danger" : undefined}
+            />
           </div>
 
           {/* Actions */}
@@ -94,35 +118,52 @@ export default function MailboxDetailPage() {
           </div>
 
           {/* Detail sections */}
-          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Section title="Warmup">
-              <KV k="Status" v={m.warmup_status} />
-              <KV k="Day" v={m.warmup_day} />
-              <KV k="Days remaining" v={m.warmup_days_remaining} />
-              <KV k="Started" v={fmt(m.warmup_start_date)} />
-              <KV k="Completed" v={fmt(m.warmup_completed_at)} />
-            </Section>
-            <Section title="Send load">
-              <KV k="Today" v={`${m.daily_send_count} / ${m.daily_send_limit}`} />
-              <KV k="Priority" v={m.send_priority} />
-              <KV k="Last used" v={fmt(m.last_used_at)} />
-              <KV k="Next send" v={fmt(m.next_send_at)} />
-              <KV k="Open / Click tracking" v={`${m.open_tracking_enabled ? "on" : "off"} / ${m.click_tracking_enabled ? "on" : "off"}`} />
-            </Section>
-            <Section title="Connection">
-              <KV k="Provider" v={m.provider} />
-              <KV k="Type" v={m.is_oauth ? "OAuth" : m.is_smtp ? "SMTP" : "—"} />
-              <KV k="SMTP host" v={m.smtp_host || "—"} />
-              <KV k="SMTP port" v={m.smtp_port ?? "—"} />
-              <KV k="IMAP host" v={m.imap_host || "—"} />
-              <KV k="Token expiry" v={fmt(m.token_expiry)} />
-            </Section>
-            <Section title="Meta">
-              <KV k="Organisation" v={m.organization_name} />
-              <KV k="Assigned user" v={m.assigned_user || "—"} />
-              <KV k="Created" v={fmt(m.created_at)} />
-              <KV k="Updated" v={fmt(m.updated_at)} />
-            </Section>
+          <div className="mt-6 grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+            <Panel title="Warmup" right={<StatePill value={m.warmup_status} />}>
+              <DetailList>
+                <DetailRow label="Day" value={m.warmup_day} />
+                <DetailRow label="Days remaining" value={m.warmup_days_remaining} />
+                <DetailRow label="Started" value={fmt(m.warmup_start_date)} />
+                <DetailRow label="Completed" value={fmt(m.warmup_completed_at)} />
+              </DetailList>
+            </Panel>
+            <Panel
+              title="Send load"
+              right={
+                <span className="font-code text-xs tabular-nums text-ink-muted">
+                  {m.daily_send_count} / {m.daily_send_limit} today
+                </span>
+              }
+            >
+              <UsageBar used={m.daily_send_count} cap={m.daily_send_limit} />
+              <DetailList>
+                <DetailRow label="Priority" value={m.send_priority} />
+                <DetailRow label="Last used" value={fmt(m.last_used_at)} />
+                <DetailRow label="Next send" value={fmt(m.next_send_at)} />
+                <DetailRow
+                  label="Open / Click tracking"
+                  value={`${m.open_tracking_enabled ? "on" : "off"} / ${m.click_tracking_enabled ? "on" : "off"}`}
+                />
+              </DetailList>
+            </Panel>
+            <Panel title="Connection">
+              <DetailList>
+                <DetailRow label="Provider" value={m.provider} />
+                <DetailRow label="Type" value={m.is_oauth ? "OAuth" : m.is_smtp ? "SMTP" : "—"} />
+                <DetailRow label="SMTP host" value={m.smtp_host || "—"} />
+                <DetailRow label="SMTP port" value={m.smtp_port ?? "—"} />
+                <DetailRow label="IMAP host" value={m.imap_host || "—"} />
+                <DetailRow label="Token expiry" value={fmt(m.token_expiry)} />
+              </DetailList>
+            </Panel>
+            <Panel title="Meta">
+              <DetailList>
+                <DetailRow label="Organisation" value={m.organization_name} />
+                <DetailRow label="Assigned user" value={m.assigned_user || "—"} />
+                <DetailRow label="Created" value={fmt(m.created_at)} />
+                <DetailRow label="Updated" value={fmt(m.updated_at)} />
+              </DetailList>
+            </Panel>
           </div>
         </>
       )}
@@ -130,32 +171,8 @@ export default function MailboxDetailPage() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl border border-surface-softer bg-white px-4 py-3 shadow-soft-lift">
-      <div className="font-code text-[0.6rem] font-bold uppercase tracking-[0.15em] text-ink-soft">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums text-ink">{value.toLocaleString()}</div>
-    </div>
-  );
-}
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-surface-softer bg-white p-6 shadow-soft-lift">
-      <p className="font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-coral">{title}</p>
-      <dl className="mt-4 space-y-2">{children}</dl>
-    </div>
-  );
-}
 
-function KV({ k, v }: { k: string; v: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-4 text-sm">
-      <dt className="text-ink-muted">{k}</dt>
-      <dd className="text-right font-medium text-ink">{v}</dd>
-    </div>
-  );
-}
 
 function ActionBtn({
   label,
