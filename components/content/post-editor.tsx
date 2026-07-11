@@ -76,6 +76,26 @@ export function PostEditor({ slug }: { slug?: string }) {
 
   const [form, setForm] = useState<FormState | null>(isEdit ? null : EMPTY);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  // Which pane is currently driving a scroll sync — prevents the mirrored
+  // pane's own onScroll from fighting back in a feedback loop.
+  const scrollDriverRef = useRef<"editor" | "preview" | null>(null);
+
+  const syncScroll = (from: "editor" | "preview") => {
+    const ta = bodyRef.current;
+    const pv = previewRef.current;
+    if (!ta || !pv) return;
+    if (scrollDriverRef.current && scrollDriverRef.current !== from) return;
+    scrollDriverRef.current = from;
+    const src = from === "editor" ? ta : pv;
+    const dst = from === "editor" ? pv : ta;
+    const srcMax = src.scrollHeight - src.clientHeight;
+    const ratio = srcMax > 0 ? src.scrollTop / srcMax : 0;
+    dst.scrollTop = ratio * (dst.scrollHeight - dst.clientHeight);
+    requestAnimationFrame(() => {
+      scrollDriverRef.current = null;
+    });
+  };
   const [tagsText, setTagsText] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -268,6 +288,7 @@ export function PostEditor({ slug }: { slug?: string }) {
                 ref={bodyRef}
                 value={form.body_mdx}
                 onChange={(e) => set("body_mdx", e.target.value)}
+                onScroll={() => syncScroll("editor")}
                 spellCheck={false}
                 placeholder="# Write your post in Markdown / MDX…"
                 className="h-[36rem] w-full resize-none rounded-lg border border-surface-softer bg-white px-3 py-2 font-mono text-[0.8rem] leading-relaxed text-ink focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
@@ -278,6 +299,8 @@ export function PostEditor({ slug }: { slug?: string }) {
                 Preview
               </p>
               <div
+                ref={previewRef}
+                onScroll={() => syncScroll("preview")}
                 className="md-preview h-[36rem] overflow-y-auto rounded-lg border border-surface-softer bg-white px-5 py-4 text-sm leading-relaxed text-ink"
                 dangerouslySetInnerHTML={{ __html: previewHtml }}
               />
