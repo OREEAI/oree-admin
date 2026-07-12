@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useStoredAuth } from "@/hooks/useAuth";
 import { useUserQuery } from "@/hooks/useUser";
@@ -31,12 +31,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const userQuery = useUserQuery({ enabled: hasStoredAuth });
 
-  // No session at all → straight to login.
+  // The auth store hydrates with a null server snapshot; judging it on
+  // the first commit bounced every reload through /login and back to the
+  // dashboard. Wait for the post-mount snapshot before redirecting, and
+  // carry the current path so login can return the user to it.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+
+  // No session at all → straight to login (remembering where we were).
   useEffect(() => {
+    if (!hydrated) return;
     if (!hasStoredAuth) {
-      router.replace("/login");
+      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
     }
-  }, [hasStoredAuth, router]);
+  }, [hydrated, hasStoredAuth, router, pathname]);
 
   // Session present but the /me call rejected as unauthorised → clear and
   // bounce to login.

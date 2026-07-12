@@ -15,6 +15,13 @@ import { getApiErrorMessage } from "@/service/api";
  * shared auth-storage helper. On success it redirects to "/", where the
  * admin auth gate verifies the super-admin role.
  */
+function safeNextPath(): string {
+  if (typeof window === "undefined") return "/";
+  const raw = new URLSearchParams(window.location.search).get("next") || "/";
+  // Same-origin paths only — never a protocol-relative or absolute URL.
+  return raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -27,7 +34,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (hasStoredAuth) {
-      router.replace("/");
+      router.replace(safeNextPath());
     }
   }, [hasStoredAuth, router]);
 
@@ -40,7 +47,7 @@ export default function LoginPage() {
 
     try {
       await login({ email, password });
-      router.replace("/");
+      router.replace(safeNextPath());
     } catch (submitError) {
       setError(
         getApiErrorMessage(
