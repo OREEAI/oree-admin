@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { FiGlobe, FiZap } from "react-icons/fi";
 
 import { getApiErrorMessage } from "@/service/api";
-import { ConfigureDomainDnsApi, GetAdminDomainDetailApi } from "@/service/resources";
+import { ConfigureDomainDnsApi, GetAdminDomainDetailApi, SetDomainDkimApi } from "@/service/resources";
 import { AdminTh, Pill } from "../../_components/table";
 import { BackLink, DetailList, DetailRow, Panel, StatePill } from "../../_components/ui";
 
@@ -119,6 +120,8 @@ export default function DomainDetailPage() {
             </Panel>
           </div>
 
+          {!d.dkim_key_present ? <DkimPanel domainId={id} onSaved={() => query.refetch()} /> : null}
+
           <h2 className="mt-8 font-code text-[0.65rem] font-bold uppercase tracking-[0.2em] text-ink-soft">
             Mailboxes on this domain ({d.mailboxes.length})
           </h2>
@@ -157,3 +160,48 @@ export default function DomainDetailPage() {
   );
 }
 
+
+function DkimPanel({ domainId, onSaved }: { domainId: string; onSaved: () => void }) {
+  const [value, setValue] = useState("");
+  const [error, setError] = useState("");
+
+  const save = useMutation({
+    mutationFn: () => SetDomainDkimApi(domainId, value.trim()),
+    onMutate: () => setError(""),
+    onSuccess: onSaved,
+    onError: (e) => setError(getApiErrorMessage(e, "Couldn't publish the DKIM key.")),
+  });
+
+  return (
+    <div className="mt-4 rounded-2xl border border-warning/40 bg-warning/5 p-6">
+      <p className="font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink">
+        DKIM key missing
+      </p>
+      <p className="mt-2 max-w-2xl text-sm text-ink-muted">
+        Generate the key in Google Admin (Apps → Google Workspace → Gmail → Authenticate email →
+        select this domain → Generate new record), then paste the full TXT value below. It is
+        published to the zone immediately.
+      </p>
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        rows={3}
+        spellCheck={false}
+        placeholder="v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC…"
+        className="mt-3 w-full rounded-lg border border-surface-softer bg-white px-3 py-2 font-code text-xs leading-relaxed text-ink focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
+      />
+      {error ? <p className="mt-2 text-sm text-coral">{error}</p> : null}
+      <button
+        type="button"
+        onClick={() => save.mutate()}
+        disabled={save.isPending || !value.trim().toLowerCase().startsWith("v=dkim1")}
+        className="mt-3 rounded-full bg-coral px-5 py-2 font-code text-[0.6rem] font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-coral-700 disabled:cursor-not-allowed disabled:bg-coral/40"
+      >
+        {save.isPending ? "Publishing…" : "Publish DKIM key"}
+      </button>
+      {!value.trim() || value.trim().toLowerCase().startsWith("v=dkim1") ? null : (
+        <p className="mt-2 text-xs text-warning">The value must start with v=DKIM1</p>
+      )}
+    </div>
+  );
+}

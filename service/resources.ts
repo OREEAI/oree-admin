@@ -397,3 +397,20 @@ export async function ConfigureDomainDnsApi(id: string): Promise<DomainDnsResult
   );
   return unwrapApiEnvelope(data) as DomainDnsResult;
 }
+
+/** Publish a DKIM TXT value (v=DKIM1; k=rsa; p=…) to a domain's zone. */
+export async function SetDomainDkimApi(
+  id: string,
+  dkimValue: string,
+): Promise<{ id: string; dkim_key_present: boolean; dns_verified: boolean; status: string }> {
+  const { data } = await apiClient.post<
+    | { id: string; dkim_key_present: boolean; dns_verified: boolean; status: string }
+    | ApiEnvelope<{ id: string; dkim_key_present: boolean; dns_verified: boolean; status: string }>
+  >(`/api/admin/domains/${id}/dkim`, { dkim_value: dkimValue });
+  return unwrapApiEnvelope(data) as {
+    id: string;
+    dkim_key_present: boolean;
+    dns_verified: boolean;
+    status: string;
+  };
+}
