@@ -414,3 +414,36 @@ export async function SetDomainDkimApi(
     status: string;
   };
 }
+
+// ---------------------------------------------------------------------------
+// Operator alerts (ops backlog)
+// ---------------------------------------------------------------------------
+
+export type OperatorAlert = {
+  id: string;
+  kind: string;
+  status: string;
+  title: string;
+  message: string;
+  organization_name: string;
+  payload: Record<string, unknown>;
+  created_at: string | null;
+};
+
+export async function GetOperatorAlertsApi(): Promise<OperatorAlert[]> {
+  const { data } = await apiClient.get<OperatorAlert[] | ApiEnvelope<OperatorAlert[]>>(
+    "/api/admin/alerts",
+  );
+  const rows = unwrapApiEnvelope(data);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function SetOperatorAlertStatusApi(
+  id: string,
+  statusValue: string,
+): Promise<{ id: string; status: string }> {
+  const { data } = await apiClient.post<
+    { id: string; status: string } | ApiEnvelope<{ id: string; status: string }>
+  >(`/api/admin/alerts/${id}/status`, { status: statusValue });
+  return unwrapApiEnvelope(data) as { id: string; status: string };
+}

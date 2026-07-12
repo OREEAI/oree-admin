@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FiCheckCircle, FiList, FiRefreshCw, FiSend, FiTarget, FiXCircle } from "react-icons/fi";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { getApiErrorMessage } from "@/service/api";
@@ -12,7 +13,17 @@ import {
   RetryAdminCampaignApi,
 } from "@/service/resources";
 import { AdminTh, Pill } from "../../_components/table";
-import { BackLink, DetailList, DetailRow, HeaderAction, Panel, Stat, StatePill } from "../../_components/ui";
+import {
+  BackLink,
+  DetailList,
+  DetailRow,
+  HeaderAction,
+  Pagination,
+  paginateRows,
+  Panel,
+  Stat,
+  StatePill,
+} from "../../_components/ui";
 
 function fmt(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -37,6 +48,7 @@ function statusTone(s: string): "success" | "warning" | "danger" | "neutral" {
 
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [leadPage, setLeadPage] = useState(1);
   const query = useQuery({
     queryKey: ["admin-campaign", id],
     queryFn: () => GetAdminCampaignDetailApi(id),
@@ -159,7 +171,7 @@ export default function CampaignDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {c.leads.map((l, i) => (
+                {paginateRows(c.leads, leadPage, 25).map((l, i) => (
                   <tr key={i} className="border-b border-surface-softer/60">
                     <td className="py-3 pl-6 pr-4 font-medium text-ink">{l.name}</td>
                     <td className="py-3 pr-4 text-ink-muted">{l.company || "—"}</td>
@@ -176,6 +188,12 @@ export default function CampaignDetailPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={leadPage}
+            total={c.leads.length}
+            pageSize={25}
+            onPage={setLeadPage}
+          />
         </>
       )}
     </div>

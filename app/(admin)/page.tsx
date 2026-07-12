@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   FiActivity,
   FiCheckCircle,
@@ -23,7 +23,12 @@ import { BreakdownCard } from "@/components/breakdown-card";
 import { useUserQuery } from "@/hooks/useUser";
 import { type BlogPost, ListPostsApi } from "@/service/content";
 import { GetAdminOrgsApi } from "@/service/orgs";
-import { GetCeleryHealthApi, GetPlatformStatsApi } from "@/service/resources";
+import {
+  GetCeleryHealthApi,
+  GetOperatorAlertsApi,
+  GetPlatformStatsApi,
+  SetOperatorAlertStatusApi,
+} from "@/service/resources";
 import { rqKeys } from "@/utils/constants";
 
 export default function AdminDashboardPage() {
@@ -102,6 +107,8 @@ function PlatformDashboard() {
         <BreakdownCard title="Organisations by tier" rows={stats.byTier} loading={loading} />
         <BreakdownCard title="Organisations by status" rows={stats.byStatus} loading={loading} />
       </div>
+
+      <OperatorAlertsPanel />
 
       {/* Platform resources — what's actually in the system */}
       <h2 className="mt-10 font-code text-[0.65rem] font-bold uppercase tracking-[0.2em] text-ink-soft">
@@ -392,6 +399,66 @@ function QueueHealthPanel() {
           ) : null}
         </>
       )}
+    </div>
+  );
+}
+
+function OperatorAlertsPanel() {
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: ["admin-alerts"],
+    queryFn: GetOperatorAlertsApi,
+    refetchInterval: 60_000,
+  });
+  const setStatus = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      SetOperatorAlertStatusApi(id, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-alerts"] }),
+  });
+
+  const alerts = query.data ?? [];
+  if (query.isPending || alerts.length === 0) return null;
+
+  return (
+    <div className="mt-6 overflow-hidden rounded-2xl border border-warning/40 bg-white shadow-soft-lift">
+      <p className="border-b border-warning/20 bg-warning/5 px-6 py-3.5 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink">
+        Needs an operator ({alerts.length})
+      </p>
+      <ul className="divide-y divide-surface-softer/60">
+        {alerts.map((a) => (
+          <li key={a.id} className="flex flex-wrap items-center gap-3 px-6 py-3">
+            <span className="rounded-full bg-ink/5 px-2.5 py-0.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-ink-muted">
+              {a.kind.replace(/_/g, " ")}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium text-ink">{a.title}</span>
+              <span className="block truncate text-xs text-ink-soft">
+                {a.organization_name || "Platform"}
+                {a.message ? ` · ${a.message}` : ""}
+              </span>
+            </span>
+            <span className="font-code text-[0.6rem] text-ink-soft">
+              {a.created_at ? new Date(a.created_at).toLocaleDateString() : ""}
+            </span>
+            <button
+              type="button"
+              onClick={() => setStatus.mutate({ id: a.id, status: "done" })}
+              disabled={setStatus.isPending}
+              className="rounded-full bg-success px-3 py-1.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-white transition-colors hover:bg-success/80 disabled:opacity-50"
+            >
+              Done
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus.mutate({ id: a.id, status: "dismissed" })}
+              disabled={setStatus.isPending}
+              className="rounded-full border border-surface-softer bg-white px-3 py-1.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-ink-muted transition-colors hover:border-ink-soft hover:text-ink disabled:opacity-50"
+            >
+              Dismiss
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
