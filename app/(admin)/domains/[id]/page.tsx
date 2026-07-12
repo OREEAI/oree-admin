@@ -9,7 +9,7 @@ import { FiGlobe, FiZap } from "react-icons/fi";
 import { getApiErrorMessage } from "@/service/api";
 import { ConfigureDomainDnsApi, GetAdminDomainDetailApi } from "@/service/resources";
 import { AdminTh, Pill } from "../../_components/table";
-import { BackLink, DetailList, DetailRow, HeaderAction, Panel, StatePill } from "../../_components/ui";
+import { BackLink, DetailList, DetailRow, Panel, StatePill } from "../../_components/ui";
 
 function fmt(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -62,18 +62,23 @@ export default function DomainDetailPage() {
               </p>
             </div>
             <div className="ml-auto">
-              <HeaderAction
-                icon={FiZap}
-                label={
-                  configure.isPending
-                    ? "Configuring…"
-                    : d.dns_verified
-                      ? "Re-run DNS sync"
-                      : "Finish DNS setup"
-                }
-                disabled={configure.isPending}
+              <button
+                type="button"
                 onClick={() => configure.mutate()}
-              />
+                disabled={configure.isPending}
+                className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] transition-colors disabled:cursor-wait disabled:opacity-60 ${
+                  d.dns_verified
+                    ? "border border-surface-softer bg-white text-ink-muted hover:border-coral hover:text-coral"
+                    : "bg-coral text-white shadow-[0_8px_20px_-8px_rgba(242,78,46,0.45)] hover:bg-coral-700"
+                }`}
+              >
+                <FiZap className="h-4 w-4" />
+                {configure.isPending
+                  ? "Configuring…"
+                  : d.dns_verified
+                    ? "Re-run DNS sync"
+                    : "Finish DNS setup"}
+              </button>
             </div>
           </div>
           {configure.isSuccess ? (
