@@ -36,6 +36,7 @@ import {
 } from "@/service/orgs";
 import { GetAdminUsersApi, UpdateAdminUserApi } from "@/service/users";
 import { rqKeys } from "@/utils/constants";
+import { StatePill } from "../../_components/ui";
 import { StatusBadge, TierBadge } from "../badges";
 
 export default function OrgDetailPage() {
@@ -250,6 +251,60 @@ export default function OrgDetailPage() {
               </dl>
             </div>
           </div>
+
+          {/* The stat cards say "15 mailboxes" but not whether any of them are
+              broken, which is what an operator opened this page to find out.
+              These are the rows behind the counts. */}
+          <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
+            <ListPanel title="Mailboxes" count={org.mailboxes?.length ?? 0}>
+              {(org.mailboxes ?? []).map((mailbox) => (
+                <div
+                  key={mailbox.id}
+                  className="flex items-center justify-between gap-4 border-b border-surface-softer/60 px-6 py-3 last:border-0"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-ink">{mailbox.email_address}</p>
+                    <p className="truncate text-xs text-ink-soft">
+                      {mailbox.assigned_user || "Unassigned"} · {mailbox.daily_send_limit}/day
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <WarmupPill value={mailbox.warmup_status} />
+                    <StatePill value={mailbox.status} />
+                  </div>
+                </div>
+              ))}
+            </ListPanel>
+
+            <ListPanel title="Domains" count={org.domains?.length ?? 0}>
+              {(org.domains ?? []).map((domain) => (
+                <div
+                  key={domain.id}
+                  className="flex items-center justify-between gap-4 border-b border-surface-softer/60 px-6 py-3 last:border-0"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-ink">{domain.domain_name}</p>
+                    <p className="truncate text-xs text-ink-soft">
+                      {domain.dns_verified ? "DNS verified" : "DNS not verified"}
+                    </p>
+                  </div>
+                  <StatePill value={domain.status} />
+                </div>
+              ))}
+            </ListPanel>
+
+            <ListPanel title="ICPs" count={org.icps?.length ?? 0}>
+              {(org.icps ?? []).map((icp) => (
+                <div
+                  key={icp.id}
+                  className="flex items-center justify-between gap-4 border-b border-surface-softer/60 px-6 py-3 last:border-0"
+                >
+                  <p className="truncate text-sm font-medium text-ink">{icp.name}</p>
+                  <p className="shrink-0 truncate text-xs text-ink-soft">{icp.owner || "—"}</p>
+                </div>
+              ))}
+            </ListPanel>
+          </div>
         </>
       )}
 
@@ -273,6 +328,53 @@ export default function OrgDetailPage() {
         <LeadCapModal orgId={orgId} onClose={() => setCapOpen(false)} />
       )}
     </div>
+  );
+}
+
+/** A flush-edged panel of rows, matching the Members table's chrome. */
+function ListPanel({
+  title,
+  count,
+  children,
+}: {
+  title: string;
+  count: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-surface-softer bg-white shadow-soft-lift">
+      <p className="border-b border-surface-softer px-6 py-4 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+        {title} ({count})
+      </p>
+      {count === 0 ? (
+        <p className="px-6 py-8 text-center text-sm text-ink-soft">
+          Nothing here for this org yet.
+        </p>
+      ) : (
+        <div>{children}</div>
+      )}
+    </div>
+  );
+}
+
+/** Warm-up is the thing most likely to be silently wrong on a mailbox, so it
+ *  gets its own pill rather than hiding inside the status. */
+function WarmupPill({ value }: { value?: string }) {
+  if (!value) return null;
+  const done = value === "completed";
+  const paused = value === "paused";
+  return (
+    <span
+      className={`rounded-full px-2.5 py-0.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.14em] ${
+        done
+          ? "bg-success/10 text-success"
+          : paused
+            ? "bg-coral-50 text-coral"
+            : "bg-surface-soft text-ink-muted"
+      }`}
+    >
+      {done ? "Warm" : value.replace(/_/g, " ")}
+    </span>
   );
 }
 

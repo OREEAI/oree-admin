@@ -90,6 +90,38 @@ export type AdminOrgDetail = AdminOrg & {
     domains?: number;
     icps?: number;
   };
+  // The rows behind the counts. A count alone doesn't answer what an operator
+  // is actually on this page to find out ("15 mailboxes — is any of them
+  // broken?").
+  mailboxes?: AdminOrgMailbox[];
+  domains?: AdminOrgDomain[];
+  icps?: AdminOrgIcp[];
+};
+
+export type AdminOrgMailbox = {
+  id: string;
+  email_address: string;
+  provider: string;
+  status: string;
+  warmup_status: string;
+  daily_send_limit: number;
+  assigned_user: string;
+};
+
+export type AdminOrgDomain = {
+  id: string;
+  domain_name: string;
+  status: string;
+  dns_verified: boolean;
+  provider: string;
+  expires_at: string | null;
+};
+
+export type AdminOrgIcp = {
+  id: string;
+  name: string;
+  owner: string;
+  created_at: string;
 };
 
 export async function GetAdminOrgDetailApi(
