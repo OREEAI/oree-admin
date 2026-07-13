@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FiRefreshCw } from "react-icons/fi";
+import { FiChevronRight, FiRefreshCw } from "react-icons/fi";
 
 import { getApiErrorMessage } from "@/service/api";
 import {
@@ -207,13 +207,26 @@ function EventRow({
         className="cursor-pointer border-b border-surface-softer/60 transition-colors hover:bg-surface-soft/40"
       >
         <td className="py-3 pl-6 pr-4">
-          <span className="font-medium text-ink">{event.event_type || "—"}</span>
-          <span className="block font-code text-[0.6rem] text-ink-soft">
-            {event.source_event_id}
+          <span className="flex items-center gap-2">
+            <FiChevronRight
+              className={`h-3.5 w-3.5 shrink-0 text-ink-soft transition-transform ${open ? "rotate-90" : ""}`}
+            />
+            <span className="min-w-0">
+              <span className="block truncate font-medium text-ink">
+                {event.event_type && event.event_type !== "unknown"
+                  ? event.event_type.replace(/_/g, " ")
+                  : "Unrecognised event"}
+              </span>
+              <span className="block truncate font-code text-[0.6rem] text-ink-soft">
+                {event.source_event_id}
+              </span>
+            </span>
           </span>
         </td>
-        <td className="py-3 pr-4 font-code text-[0.65rem] font-bold uppercase tracking-[0.16em] text-ink-muted">
-          {event.source}
+        <td className="py-3 pr-4">
+          <span className="inline-flex items-center rounded-full bg-navy-800 px-2.5 py-0.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-white">
+            {event.source}
+          </span>
         </td>
         <td className="py-3 pr-4">
           <StatePill value={event.processing_status} />
@@ -235,9 +248,23 @@ function EventRow({
                     {detailQuery.data.processing_error}
                   </p>
                 ) : null}
-                <pre className="max-h-80 overflow-auto rounded-lg bg-navy-900/95 p-4 font-code text-xs leading-relaxed text-white/80">
-                  {JSON.stringify(detailQuery.data.payload ?? {}, null, 2)}
-                </pre>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void navigator.clipboard.writeText(
+                        JSON.stringify(detailQuery.data?.payload ?? {}, null, 2),
+                      );
+                    }}
+                    className="absolute right-3 top-3 rounded-full bg-white/10 px-3 py-1 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+                  >
+                    Copy
+                  </button>
+                  <pre className="max-h-80 overflow-auto rounded-lg bg-navy-900/95 p-4 pr-20 font-code text-xs leading-relaxed text-white/80">
+                    {JSON.stringify(detailQuery.data.payload ?? {}, null, 2)}
+                  </pre>
+                </div>
                 <div className="mt-3 flex items-center gap-3">
                   <button
                     type="button"
