@@ -255,23 +255,23 @@ export default function OrgDetailPage() {
           {/* The stat cards say "15 mailboxes" but not whether any of them are
               broken, which is what an operator opened this page to find out.
               These are the rows behind the counts. */}
-          <div className="mt-6 grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
+          <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-2 xl:grid-cols-3">
             <ListPanel title="Mailboxes" count={org.mailboxes?.length ?? 0}>
               {(org.mailboxes ?? []).map((mailbox) => (
                 <div
                   key={mailbox.id}
-                  className="flex items-center justify-between gap-4 border-b border-surface-softer/60 px-6 py-3 last:border-0"
+                  className="border-b border-surface-softer/60 px-5 py-2.5 last:border-0"
                 >
-                  <div className="min-w-0">
+                  <div className="flex items-center justify-between gap-3">
                     <p className="truncate text-sm font-medium text-ink">{mailbox.email_address}</p>
-                    <p className="truncate text-xs text-ink-soft">
-                      {mailbox.assigned_user || "Unassigned"} · {mailbox.daily_send_limit}/day
-                    </p>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <WarmupPill value={mailbox.warmup_status} />
+                      <StatePill value={mailbox.status} />
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <WarmupPill value={mailbox.warmup_status} />
-                    <StatePill value={mailbox.status} />
-                  </div>
+                  <p className="mt-0.5 truncate text-xs text-ink-soft">
+                    {mailbox.assigned_user || "Unassigned"} · {mailbox.daily_send_limit}/day
+                  </p>
                 </div>
               ))}
             </ListPanel>
@@ -280,11 +280,15 @@ export default function OrgDetailPage() {
               {(org.domains ?? []).map((domain) => (
                 <div
                   key={domain.id}
-                  className="flex items-center justify-between gap-4 border-b border-surface-softer/60 px-6 py-3 last:border-0"
+                  className="flex items-center justify-between gap-3 border-b border-surface-softer/60 px-5 py-2.5 last:border-0"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-ink">{domain.domain_name}</p>
-                    <p className="truncate text-xs text-ink-soft">
+                    <p
+                      className={`truncate text-xs ${
+                        domain.dns_verified ? "text-ink-soft" : "text-coral"
+                      }`}
+                    >
                       {domain.dns_verified ? "DNS verified" : "DNS not verified"}
                     </p>
                   </div>
@@ -297,10 +301,10 @@ export default function OrgDetailPage() {
               {(org.icps ?? []).map((icp) => (
                 <div
                   key={icp.id}
-                  className="flex items-center justify-between gap-4 border-b border-surface-softer/60 px-6 py-3 last:border-0"
+                  className="border-b border-surface-softer/60 px-5 py-2.5 last:border-0"
                 >
                   <p className="truncate text-sm font-medium text-ink">{icp.name}</p>
-                  <p className="shrink-0 truncate text-xs text-ink-soft">{icp.owner || "—"}</p>
+                  <p className="mt-0.5 truncate text-xs text-ink-soft">{icp.owner || "—"}</p>
                 </div>
               ))}
             </ListPanel>
@@ -331,7 +335,13 @@ export default function OrgDetailPage() {
   );
 }
 
-/** A flush-edged panel of rows, matching the Members table's chrome. */
+/** A flush-edged panel of rows, matching the Members table's chrome.
+ *
+ *  The row count varies wildly between these panels — an org can have 15
+ *  mailboxes and 3 domains — so a long list scrolls inside its own panel
+ *  rather than stretching the page into one lopsided column. The header stays
+ *  put while the rows move, so you can always see what you're looking at.
+ */
 function ListPanel({
   title,
   count,
@@ -342,8 +352,8 @@ function ListPanel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-surface-softer bg-white shadow-soft-lift">
-      <p className="border-b border-surface-softer px-6 py-4 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+    <div className="flex max-h-[26rem] flex-col overflow-hidden rounded-2xl border border-surface-softer bg-white shadow-soft-lift">
+      <p className="shrink-0 border-b border-surface-softer px-6 py-4 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
         {title} ({count})
       </p>
       {count === 0 ? (
@@ -351,7 +361,7 @@ function ListPanel({
           Nothing here for this org yet.
         </p>
       ) : (
-        <div>{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
       )}
     </div>
   );
