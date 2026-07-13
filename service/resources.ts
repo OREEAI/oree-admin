@@ -421,12 +421,13 @@ export async function SetDomainDkimApi(
 
 export type OperatorAlert = {
   id: string;
+  ids: string[];
+  count: number;
   kind: string;
   status: string;
   title: string;
   message: string;
   organization_name: string;
-  payload: Record<string, unknown>;
   created_at: string | null;
 };
 
@@ -446,4 +447,16 @@ export async function SetOperatorAlertStatusApi(
     { id: string; status: string } | ApiEnvelope<{ id: string; status: string }>
   >(`/api/admin/alerts/${id}/status`, { status: statusValue });
   return unwrapApiEnvelope(data) as { id: string; status: string };
+}
+
+/** Clear a deduped alert group (ids) or an entire noisy kind. */
+export async function BulkClearAlertsApi(payload: {
+  ids?: string[];
+  kind?: string;
+  status?: string;
+}): Promise<{ cleared: number }> {
+  const { data } = await apiClient.post<
+    { cleared: number } | ApiEnvelope<{ cleared: number }>
+  >("/api/admin/alerts/bulk-clear", payload);
+  return unwrapApiEnvelope(data) as { cleared: number };
 }

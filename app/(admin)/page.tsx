@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   FiActivity,
@@ -24,6 +24,7 @@ import { useUserQuery } from "@/hooks/useUser";
 import { type BlogPost, ListPostsApi } from "@/service/content";
 import { GetAdminOrgsApi } from "@/service/orgs";
 import {
+  BulkClearAlertsApi,
   GetCeleryHealthApi,
   GetOperatorAlertsApi,
   GetPlatformStatsApi,
@@ -108,8 +109,6 @@ function PlatformDashboard() {
         <BreakdownCard title="Organisations by status" rows={stats.byStatus} loading={loading} />
       </div>
 
-      <OperatorAlertsPanel />
-
       {/* Platform resources — what's actually in the system */}
       <h2 className="mt-10 font-code text-[0.65rem] font-bold uppercase tracking-[0.2em] text-ink-soft">
         Platform
@@ -163,6 +162,8 @@ function PlatformDashboard() {
       )}
 
       <QueueHealthPanel />
+
+      <OperatorAlertsPanel />
 
       {/* Section shortcuts */}
       <h2 className="mt-10 font-code text-[0.65rem] font-bold uppercase tracking-[0.2em] text-ink-soft">
@@ -405,60 +406,105 @@ function QueueHealthPanel() {
 
 function OperatorAlertsPanel() {
   const qc = useQueryClient();
+  const [expanded, setExpanded] = useState(false);
+
   const query = useQuery({
     queryKey: ["admin-alerts"],
     queryFn: GetOperatorAlertsApi,
     refetchInterval: 60_000,
   });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-alerts"] });
+
   const setStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       SetOperatorAlertStatusApi(id, status),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-alerts"] }),
+    onSuccess: invalidate,
+  });
+  const bulkClear = useMutation({
+    mutationFn: (payload: { ids?: string[]; kind?: string; status?: string }) =>
+      BulkClearAlertsApi(payload),
+    onSuccess: invalidate,
   });
 
   const alerts = query.data ?? [];
   if (query.isPending || alerts.length === 0) return null;
 
+  const shown = expanded ? alerts : alerts.slice(0, 5);
+
   return (
-    <div className="mt-6 overflow-hidden rounded-2xl border border-warning/40 bg-white shadow-soft-lift">
-      <p className="border-b border-warning/20 bg-warning/5 px-6 py-3.5 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink">
-        Needs an operator ({alerts.length})
-      </p>
+    <div className="mt-6 overflow-hidden rounded-2xl border border-surface-softer bg-white shadow-soft-lift">
+      <div className="flex items-center justify-between gap-4 border-b border-surface-softer px-6 py-3.5">
+        <p className="font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+          Needs an operator ({alerts.length})
+        </p>
+        {alerts.length > 5 ? (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-coral hover:text-coral-700"
+          >
+            {expanded ? "Show less" : `Show all ${alerts.length}`}
+          </button>
+        ) : null}
+      </div>
+
       <ul className="divide-y divide-surface-softer/60">
-        {alerts.map((a) => (
+        {shown.map((a) => (
           <li key={a.id} className="flex flex-wrap items-center gap-3 px-6 py-3">
-            <span className="rounded-full bg-ink/5 px-2.5 py-0.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-ink-muted">
+            <span className="shrink-0 rounded-full bg-ink/5 px-2.5 py-0.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-ink-muted">
               {a.kind.replace(/_/g, " ")}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-ink">{a.title}</span>
+              <span className="flex items-center gap-2">
+                <span className="truncate text-sm font-medium text-ink">{a.title}</span>
+                {a.count > 1 ? (
+                  <span className="shrink-0 rounded-full bg-coral/10 px-1.5 py-0.5 font-code text-[0.55rem] font-bold tabular-nums text-coral">
+                    ×{a.count}
+                  </span>
+                ) : null}
+              </span>
               <span className="block truncate text-xs text-ink-soft">
                 {a.organization_name || "Platform"}
                 {a.message ? ` · ${a.message}` : ""}
               </span>
             </span>
-            <span className="font-code text-[0.6rem] text-ink-soft">
+            <span className="shrink-0 font-code text-[0.6rem] tabular-nums text-ink-soft">
               {a.created_at ? new Date(a.created_at).toLocaleDateString() : ""}
             </span>
-            <button
-              type="button"
-              onClick={() => setStatus.mutate({ id: a.id, status: "done" })}
-              disabled={setStatus.isPending}
-              className="rounded-full bg-success px-3 py-1.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-white transition-colors hover:bg-success/80 disabled:opacity-50"
-            >
-              Done
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatus.mutate({ id: a.id, status: "dismissed" })}
-              disabled={setStatus.isPending}
-              className="rounded-full border border-surface-softer bg-white px-3 py-1.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-ink-muted transition-colors hover:border-ink-soft hover:text-ink disabled:opacity-50"
-            >
-              Dismiss
-            </button>
+            <div className="flex shrink-0 gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  if (a.count > 1) bulkClear.mutate({ ids: a.ids, status: "done" });
+                  else setStatus.mutate({ id: a.id, status: "done" });
+                }}
+                disabled={setStatus.isPending || bulkClear.isPending}
+                className="rounded-full bg-success px-3 py-1.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-white transition-colors hover:bg-success/80 disabled:opacity-50"
+                title="Mark handled"
+              >
+                Done
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (a.count > 1) bulkClear.mutate({ ids: a.ids });
+                  else setStatus.mutate({ id: a.id, status: "dismissed" });
+                }}
+                disabled={setStatus.isPending || bulkClear.isPending}
+                className="rounded-full border border-surface-softer bg-white px-3 py-1.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-ink-muted transition-colors hover:border-ink-soft hover:text-ink disabled:opacity-50"
+                title="Not worth acting on"
+              >
+                Dismiss
+              </button>
+            </div>
           </li>
         ))}
       </ul>
+
+      <p className="border-t border-surface-softer bg-surface-soft/40 px-6 py-2.5 text-[0.7rem] text-ink-soft">
+        Done = handled. Dismiss = no action needed. Grouped alerts (×n) clear together. Noisy
+        machine-retry failures are excluded from this queue.
+      </p>
     </div>
   );
 }
