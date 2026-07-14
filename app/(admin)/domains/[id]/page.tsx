@@ -99,8 +99,26 @@ export default function DomainDetailPage() {
           <div className="mt-6 grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
             <Panel title="DNS &amp; provider" right={<StatePill value={d.dns_verified ? "verified" : "pending"} />}>
               <DetailList>
-                <DetailRow label="Provider" value={d.provider} />
-                <DetailRow label="DKIM key" value={<StatePill value={d.dkim_key_present ? "yes" : "no"} />} />
+                <DetailRow label="Registrar" value={d.provider} />
+                <DetailRow
+                  label="Mail provider"
+                  value={d.mail_provider === "twentyi" ? "20i (managed)" : "Google Workspace"}
+                />
+                <DetailRow
+                  label="DKIM"
+                  value={
+                    d.dkim_managed ? (
+                      // On 20i, DKIM is generated and published by the provider,
+                      // then read back and synced automatically — never pasted.
+                      <StatePill value={d.dkim_key_present ? "auto · live" : "auto · pending"} />
+                    ) : (
+                      <StatePill value={d.dkim_key_present ? "yes" : "no"} />
+                    )
+                  }
+                />
+                {d.dkim_selector ? (
+                  <DetailRow label="DKIM selector" value={d.dkim_selector} />
+                ) : null}
                 <DetailRow label="Tracking subdomain" value={d.tracking_subdomain || "—"} />
                 <DetailRow label="Registrar ID" value={d.registrar_id || "—"} />
               </DetailList>
@@ -120,7 +138,25 @@ export default function DomainDetailPage() {
             </Panel>
           </div>
 
-          {!d.dkim_key_present ? <DkimPanel domainId={id} onSaved={() => query.refetch()} /> : null}
+          {/* The manual DKIM paste only applies to Google Workspace domains —
+              Google exposes no API to generate the key, so an operator copies
+              it from admin.google.com. On 20i the key is generated, published
+              and synced automatically, so there is nothing to paste; we just
+              say so instead of showing a field that would do nothing. */}
+          {d.dkim_managed ? (
+            <div className="mt-6 rounded-2xl border border-surface-softer bg-white p-5 shadow-soft-lift">
+              <p className="font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+                DKIM
+              </p>
+              <p className="mt-2 text-sm text-ink-muted">
+                {d.dkim_key_present
+                  ? `Managed by 20i and live in the zone${d.dkim_selector ? ` (selector ${d.dkim_selector})` : ""}. Nothing to do.`
+                  : "Managed by 20i. The key is generated and published automatically once the domain's mail is live — usually within a few minutes of the first mailbox. No manual step."}
+              </p>
+            </div>
+          ) : !d.dkim_key_present ? (
+            <DkimPanel domainId={id} onSaved={() => query.refetch()} />
+          ) : null}
 
           <h2 className="mt-8 font-code text-[0.65rem] font-bold uppercase tracking-[0.2em] text-ink-soft">
             Mailboxes on this domain ({d.mailboxes.length})

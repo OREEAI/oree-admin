@@ -138,6 +138,11 @@ export async function MailboxActionApi(id: string, action: string) {
 }
 
 export type AdminDomainDetail = AdminDomain & {
+  // Which provider sends this domain's mail — decides whether DKIM is a manual
+  // paste (google) or fully automatic (twentyi).
+  mail_provider: "google" | "twentyi";
+  dkim_managed: boolean;
+  dkim_selector: string;
   dkim_key_present: boolean;
   registrar_id: string;
   provider_domain_key: string;
