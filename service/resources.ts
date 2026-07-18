@@ -465,3 +465,38 @@ export async function BulkClearAlertsApi(payload: {
   >("/api/admin/alerts/bulk-clear", payload);
   return unwrapApiEnvelope(data) as { cleared: number };
 }
+
+// ---------------------------------------------------------------------------
+// Platform flags — platform-wide feature switches (first: drip sourcing).
+//   GET  /api/admin/platform-flags
+//   POST /api/admin/platform-flags/<key>   { enabled }
+// ---------------------------------------------------------------------------
+
+export type PlatformFlagRow = {
+  key: string;
+  label: string;
+  description: string;
+  enabled: boolean;
+  /** "db" once an admin has flipped it; "env" while still on the legacy env var. */
+  source: "db" | "env";
+  updated_at: string | null;
+  updated_by: string | null;
+};
+
+export async function GetPlatformFlagsApi(): Promise<PlatformFlagRow[]> {
+  const { data } = await apiClient.get<PlatformFlagRow[] | ApiEnvelope<PlatformFlagRow[]>>(
+    "/api/admin/platform-flags",
+  );
+  const rows = unwrapApiEnvelope(data);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function SetPlatformFlagApi(
+  key: string,
+  enabled: boolean,
+): Promise<{ key: string; enabled: boolean }> {
+  const { data } = await apiClient.post<
+    { key: string; enabled: boolean } | ApiEnvelope<{ key: string; enabled: boolean }>
+  >(`/api/admin/platform-flags/${key}`, { enabled });
+  return unwrapApiEnvelope(data) as { key: string; enabled: boolean };
+}
