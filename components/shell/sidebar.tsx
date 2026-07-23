@@ -10,6 +10,7 @@ import {
   FiHome,
   FiMail,
   FiSend,
+  FiTag,
   FiToggleRight,
   FiTrash2,
   FiUsers,
@@ -50,6 +51,10 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Domains", href: "/domains", icon: FiGlobe },
       { label: "Campaigns", href: "/campaigns", icon: FiSend },
     ],
+  },
+  {
+    label: "Billing",
+    items: [{ label: "Plans", href: "/plans", icon: FiTag }],
   },
   {
     label: "Marketing",

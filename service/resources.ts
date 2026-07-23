@@ -500,3 +500,50 @@ export async function SetPlatformFlagApi(
   >(`/api/admin/platform-flags/${key}`, { enabled });
   return unwrapApiEnvelope(data) as { key: string; enabled: boolean };
 }
+
+// ---------------------------------------------------------------------------
+// Subscription plan pricing (super-admin).
+//   GET  /api/admin/plans
+//   POST /api/admin/plans/<code>/pricing   { amount_minor, billing_interval? }
+// Prices are stored in the DB and pushed to Stripe. Because Stripe prices are
+// immutable, an edit mints a new Stripe price server-side and repoints the plan.
+// ---------------------------------------------------------------------------
+
+export type AdminPlanRow = {
+  code: string;
+  tier: string;
+  display_name: string;
+  description: string;
+  amount_minor: number;
+  currency: string;
+  billing_interval: "month" | "year" | string;
+  trial_days: number;
+  is_active: boolean;
+  is_checkout_allowed: boolean;
+  stripe_price_id: string;
+  /** "admin" once edited here; "env" while still driven by the seed env var. */
+  pricing_managed_by: "admin" | "env" | string;
+  leads_per_month: number | null;
+};
+
+export async function GetAdminPlansApi(): Promise<AdminPlanRow[]> {
+  const { data } = await apiClient.get<AdminPlanRow[] | ApiEnvelope<AdminPlanRow[]>>(
+    "/api/admin/plans",
+  );
+  const rows = unwrapApiEnvelope(data);
+  return Array.isArray(rows) ? rows : [];
+}
+
+export async function UpdatePlanPricingApi(
+  code: string,
+  payload: { amount_minor: number; billing_interval?: "month" | "year" },
+): Promise<AdminPlanRow & { new_price_id: string; subscriber_migration: string }> {
+  const { data } = await apiClient.post<
+    | (AdminPlanRow & { new_price_id: string; subscriber_migration: string })
+    | ApiEnvelope<AdminPlanRow & { new_price_id: string; subscriber_migration: string }>
+  >(`/api/admin/plans/${code}/pricing`, payload);
+  return unwrapApiEnvelope(data) as AdminPlanRow & {
+    new_price_id: string;
+    subscriber_migration: string;
+  };
+}
