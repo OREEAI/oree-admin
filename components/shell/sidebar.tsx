@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   FiActivity,
   FiDatabase,
+  FiFileText,
   FiGlobe,
   FiGrid,
   FiHome,
@@ -63,6 +64,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "System",
     items: [
+      { label: "Prompts", href: "/prompts", icon: FiFileText },
       { label: "Flags", href: "/flags", icon: FiToggleRight },
       { label: "Cleanup", href: "/cleanup", icon: FiTrash2 },
       { label: "Webhooks", href: "/webhooks", icon: FiZap },
