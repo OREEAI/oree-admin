@@ -47,6 +47,27 @@ export async function SavePromptApi(
   return unwrapApiEnvelope(data) as PromptTemplate;
 }
 
+export type PromptSample = {
+  markdown: string;
+  lead_name: string;
+  organization: string;
+};
+
+/** Render every prompt's real output for one lead (Ben Aug 2: "all prompts
+ * for one lead"). Synchronous on the backend — the Claude calls make it take
+ * up to ~1 minute, so give axios a long timeout. */
+export async function RenderPromptSampleApi(
+  lead: string,
+  organizationId?: string,
+): Promise<PromptSample> {
+  const { data } = await apiClient.post<PromptSample | ApiEnvelope<PromptSample>>(
+    "/api/admin/prompts/sample",
+    { lead, ...(organizationId ? { organization: organizationId } : {}) },
+    { timeout: 180_000 },
+  );
+  return unwrapApiEnvelope(data);
+}
+
 export async function ResetPromptApi(key: string): Promise<PromptTemplate> {
   const { data } = await apiClient.post<PromptTemplate | ApiEnvelope<PromptTemplate>>(
     `/api/admin/prompts/${key}/reset`,

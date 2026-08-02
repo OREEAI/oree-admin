@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FiRotateCcw, FiSave } from "react-icons/fi";
+import { FiPlay, FiRotateCcw, FiSave, FiX } from "react-icons/fi";
 
 import { getApiErrorMessage } from "@/service/api";
 import {
   GetPromptsApi,
+  RenderPromptSampleApi,
   ResetPromptApi,
   SavePromptApi,
+  type PromptSample,
   type PromptTemplate,
 } from "@/service/prompts";
 
@@ -105,11 +107,16 @@ export default function PromptsPage() {
   return (
     <div className="flex h-full flex-col">
       <header className="border-b border-slate-200 bg-white px-6 py-4">
-        <h1 className="text-xl font-semibold text-slate-900">Content prompts</h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          Edit the email, LinkedIn, video and call prompts. Changes take effect immediately, with the
-          built-in defaults as a safety net if a prompt is ever cleared.
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-slate-900">Content prompts</h1>
+            <p className="mt-0.5 text-sm text-slate-500">
+              Edit the email, LinkedIn, video and call prompts. Changes take effect immediately, with
+              the built-in defaults as a safety net if a prompt is ever cleared.
+            </p>
+          </div>
+          <SampleRunner />
+        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
@@ -235,6 +242,92 @@ export default function PromptsPage() {
           </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+/** "Test on a lead" (Ben Aug 2: "all prompts for one lead") — renders every
+ * prompt's REAL output for one researched lead: existing email drafts, the
+ * live LinkedIn generator, the on-demand call script, and the voice/video
+ * script (no HeyGen spend). Takes up to ~1 min — the Claude calls run live. */
+function SampleRunner() {
+  const [leadRef, setLeadRef] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<PromptSample | null>(null);
+
+  const run = async () => {
+    if (!leadRef.trim() || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      setResult(await RenderPromptSampleApi(leadRef.trim()));
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Couldn't render samples for that lead."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={leadRef}
+          onChange={(e) => setLeadRef(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void run();
+          }}
+          placeholder="Lead email or id…"
+          className="h-9 w-64 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-navy-900 focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={() => void run()}
+          disabled={busy || !leadRef.trim()}
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-navy-900 px-3.5 text-sm font-medium text-white hover:bg-navy-800 disabled:opacity-50"
+        >
+          <FiPlay size={13} />
+          {busy ? "Rendering… (~1 min)" : "Test on a lead"}
+        </button>
+      </div>
+      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+
+      {result ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-6">
+          <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">
+                  Prompt samples — {result.lead_name}
+                </h2>
+                <p className="text-xs text-slate-500">{result.organization}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void navigator.clipboard.writeText(result.markdown)}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Copy markdown
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setResult(null)}
+                  className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
+                  aria-label="Close"
+                >
+                  <FiX size={16} />
+                </button>
+              </div>
+            </div>
+            <pre className="flex-1 overflow-auto whitespace-pre-wrap px-5 py-4 font-sans text-sm leading-relaxed text-slate-800">
+              {result.markdown}
+            </pre>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
