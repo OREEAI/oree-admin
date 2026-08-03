@@ -157,7 +157,9 @@ function PlatformDashboard() {
           <MiniStat label="Sent" value={p.email_today.SENT ?? 0} />
           <MiniStat label="Opened" value={p.email_today.OPEN ?? 0} />
           <MiniStat label="Replied" value={p.email_today.REPLY ?? 0} />
-          <MiniStat label="Bounced" value={p.email_today.BOUNCE ?? 0} />
+          {/* DSNs are stamped at detection: a poller restart sweeping an
+              inbox backlog spikes this without a single new send. */}
+          <MiniStat label="Bounces detected" value={p.email_today.BOUNCE ?? 0} />
         </div>
       )}
 

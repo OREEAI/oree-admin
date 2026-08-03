@@ -125,6 +125,10 @@ export type AdminMailboxDetail = AdminMailbox & {
   updated_at: string | null;
   metrics: Record<string, number>;
   bounce_breakdown?: Record<string, number>;
+  deliverability_pct?: number | null;
+  reputation_bounces?: number;
+  failed_sends?: number;
+  pending_sends?: number;
 };
 
 export async function GetAdminMailboxDetailApi(id: string): Promise<AdminMailboxDetail | null> {

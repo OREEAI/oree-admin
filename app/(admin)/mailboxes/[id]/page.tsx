@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
 import {
+  FiActivity,
   FiCheckCircle,
   FiInbox,
   FiMail,
@@ -83,8 +84,10 @@ export default function MailboxDetailPage() {
             </div>
           </div>
 
-          {/* Metrics */}
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {/* Metrics. Bounced = receiver bounces only (send failures live
+              in the breakdown line); Health counts only what's this
+              mailbox's fault — rejections/spam-blocks + failed sends. */}
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
             <Stat icon={FiSend} label="Sent" value={m.metrics?.SENT ?? 0} />
             <Stat icon={FiInbox} label="Opened" value={m.metrics?.OPEN ?? 0} />
             <Stat
@@ -97,28 +100,58 @@ export default function MailboxDetailPage() {
               icon={FiXCircle}
               label="Bounced"
               value={m.metrics?.BOUNCE ?? 0}
+              hint="receiver bounces"
               tone={(m.metrics?.BOUNCE ?? 0) > 0 ? "danger" : undefined}
+            />
+            <Stat
+              icon={FiActivity}
+              label="Health"
+              value={m.deliverability_pct != null ? `${m.deliverability_pct}%` : "—"}
+              hint={
+                m.deliverability_pct != null
+                  ? `${(m.reputation_bounces ?? 0) + (m.failed_sends ?? 0)} against`
+                  : "no sends yet"
+              }
+              tone={
+                m.deliverability_pct == null
+                  ? undefined
+                  : m.deliverability_pct >= 98
+                    ? "success"
+                    : m.deliverability_pct < 95
+                      ? "danger"
+                      : undefined
+              }
             />
           </div>
 
           {/* Bounce breakdown — a raw bounce count can't be acted on;
               rejected = sender problem, dead address = list problem,
               send failure never left us at all. */}
-          {(m.metrics?.BOUNCE ?? 0) > 0 && m.bounce_breakdown && (
+          {m.bounce_breakdown && Object.keys(m.bounce_breakdown).length > 0 && (
             <p className="mt-2 text-xs text-ink-muted">
               Bounces:{" "}
               {Object.entries(m.bounce_breakdown)
                 .sort((a, b) => b[1] - a[1])
                 .map(([cls, n]) => `${n} ${BOUNCE_CLASS_LABELS[cls] ?? cls}`)
                 .join(" · ")}
+              {(m.failed_sends ?? 0) > 0 ? ` · ${m.failed_sends} failed sends (provider/auth)` : ""}
+            </p>
+          )}
+
+          {/* Still sending — the number that must hit 0 before pausing a
+              box counts as drained (Anita move). */}
+          {(m.pending_sends ?? 0) > 0 && (
+            <p className="mt-1 text-xs font-semibold text-warning">
+              {m.pending_sends} sends still queued on this mailbox
             </p>
           )}
 
           {/* Actions */}
           <div className="mt-6 flex flex-wrap gap-2">
-            {m.warmup_status === "warming" ? (
+            {m.warmup_status === "warming" && (
               <ActionBtn label="Pause warmup" onClick={() => action.mutate("pause_warmup")} busy={action.isPending} />
-            ) : (
+            )}
+            {m.warmup_status === "paused" && (
               <ActionBtn label="Resume warmup" onClick={() => action.mutate("resume_warmup")} busy={action.isPending} />
             )}
             <ActionBtn
