@@ -86,8 +86,13 @@ export default function MailboxDetailPage() {
 
           {/* Metrics. Bounced = receiver bounces only (send failures live
               in the breakdown line); Health counts only what's this
-              mailbox's fault — rejections/spam-blocks + failed sends. */}
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
+              mailbox's fault — rejections/spam-blocks + failed sends.
+              All numbers are LIFETIME — time-ranged views live on the
+              customer analytics page. */}
+          <p className="mt-6 font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+            All-time activity{m.created_at ? ` · since ${fmt(m.created_at)}` : ""}
+          </p>
+          <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-5">
             <Stat icon={FiSend} label="Sent" value={m.metrics?.SENT ?? 0} />
             <Stat icon={FiInbox} label="Opened" value={m.metrics?.OPEN ?? 0} />
             <Stat
