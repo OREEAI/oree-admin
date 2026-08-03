@@ -83,6 +83,9 @@ export type AdminMailbox = {
   open_tracking_enabled: boolean;
   click_tracking_enabled: boolean;
   can_send: boolean;
+  /** Queued/scheduled sends still in front of this mailbox (Ben Aug 3 —
+   * watch Anita's boxes drain during the mailbox move). */
+  pending_sends: number;
 };
 
 export async function GetAdminMailboxesApi(params?: {

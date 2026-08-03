@@ -124,6 +124,7 @@ export default function MailboxesPage() {
                 <AdminTh>Provider</AdminTh>
                 <AdminTh>Warmup</AdminTh>
                 <AdminTh>Today</AdminTh>
+                <AdminTh>Still sending</AdminTh>
                 <AdminTh>Tracking</AdminTh>
                 <AdminTh className="pr-6">Status</AdminTh>
               </tr>
@@ -180,6 +181,16 @@ function MailboxRow({ m }: { m: AdminMailbox }) {
       <td className="py-3 pr-4 text-ink-muted">{warmup}</td>
       <td className="py-3 pr-4 tabular-nums text-ink-muted">
         {m.daily_send_count}/{m.daily_send_limit}
+      </td>
+      <td className="py-3 pr-4">
+        {m.pending_sends > 0 ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 font-code text-[0.62rem] font-bold tabular-nums text-amber-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            {m.pending_sends} queued
+          </span>
+        ) : (
+          <span className="font-code text-[0.62rem] text-ink-soft">clear</span>
+        )}
       </td>
       <td className="py-3 pr-4 text-xs text-ink-soft">{tracking || "—"}</td>
       <td className="py-3 pr-6">
