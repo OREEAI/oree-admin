@@ -16,6 +16,15 @@ import { GetAdminMailboxDetailApi, MailboxActionApi } from "@/service/resources"
 import { Pill } from "../../_components/table";
 import { BackLink, DetailList, DetailRow, Panel, Stat, StatePill, UsageBar } from "../../_components/ui";
 
+const BOUNCE_CLASS_LABELS: Record<string, string> = {
+  hard_rejected: "rejected / spam-blocked",
+  hard_invalid: "dead address",
+  soft: "soft (quota / autoreply)",
+  send_failure: "send failure (never left us)",
+  unknown: "unclassified",
+  unclassified: "unclassified",
+};
+
 function fmt(iso: string | null | undefined) {
   if (!iso) return "—";
   try {
@@ -91,6 +100,19 @@ export default function MailboxDetailPage() {
               tone={(m.metrics?.BOUNCE ?? 0) > 0 ? "danger" : undefined}
             />
           </div>
+
+          {/* Bounce breakdown — a raw bounce count can't be acted on;
+              rejected = sender problem, dead address = list problem,
+              send failure never left us at all. */}
+          {(m.metrics?.BOUNCE ?? 0) > 0 && m.bounce_breakdown && (
+            <p className="mt-2 text-xs text-ink-muted">
+              Bounces:{" "}
+              {Object.entries(m.bounce_breakdown)
+                .sort((a, b) => b[1] - a[1])
+                .map(([cls, n]) => `${n} ${BOUNCE_CLASS_LABELS[cls] ?? cls}`)
+                .join(" · ")}
+            </p>
+          )}
 
           {/* Actions */}
           <div className="mt-6 flex flex-wrap gap-2">
