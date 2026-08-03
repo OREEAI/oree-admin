@@ -110,6 +110,15 @@ export default function MailboxDetailPage() {
               busy={action.isPending}
             />
             <ActionBtn label="Reset daily count" onClick={() => action.mutate("reset_daily")} busy={action.isPending} />
+            {m.sending_paused ? (
+              <ActionBtn label="Resume sending" onClick={() => action.mutate("resume_sending")} busy={action.isPending} />
+            ) : (
+              <ActionBtn
+                label="Replies only (pause sending)"
+                onClick={() => action.mutate("pause_sending")}
+                busy={action.isPending}
+              />
+            )}
             {m.status === "active" ? (
               <ActionBtn label="Revoke" tone="danger" onClick={() => action.mutate("revoke")} busy={action.isPending} />
             ) : (

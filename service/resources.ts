@@ -86,6 +86,8 @@ export type AdminMailbox = {
   /** Queued/scheduled sends still in front of this mailbox (Ben Aug 3 —
    * watch Anita's boxes drain during the mailbox move). */
   pending_sends: number;
+  /** Replies-only mode: sending stops, reply polling continues. */
+  sending_paused: boolean;
 };
 
 export async function GetAdminMailboxesApi(params?: {
