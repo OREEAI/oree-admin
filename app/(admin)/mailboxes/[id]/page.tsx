@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
 import {
@@ -56,6 +57,16 @@ export default function MailboxDetailPage() {
   const action = useMutation({
     mutationFn: (a: string) => MailboxActionApi(id, a),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-mailbox", id] }),
+  });
+
+  // "Appears as" name — what recipients see instead of a bare address.
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const saveName = useMutation({
+    mutationFn: (value: string) => MailboxActionApi(id, "set_display_name", { display_name: value }),
+    onSuccess: () => {
+      setNameDraft(null);
+      qc.invalidateQueries({ queryKey: ["admin-mailbox", id] });
+    },
   });
 
   return (
@@ -150,6 +161,35 @@ export default function MailboxDetailPage() {
               {m.pending_sends} sends still queued on this mailbox
             </p>
           )}
+
+          {/* Appears-as name — recipients see this instead of the raw
+              address. Empty falls back to the assigned member's name. */}
+          <div className="mt-6 rounded-xl border border-surface-softer bg-white px-4 py-3 shadow-soft-lift">
+            <p className="font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-ink-soft">
+              Appears as
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <input
+                value={nameDraft ?? m.display_name ?? ""}
+                onChange={(e) => setNameDraft(e.target.value)}
+                placeholder="e.g. Ben Hewitt | OREE"
+                maxLength={120}
+                className="min-w-[16rem] flex-1 rounded-lg border border-surface-softer px-3 py-1.5 text-sm text-ink outline-none focus:border-coral"
+              />
+              <ActionBtn
+                label={saveName.isPending ? "Saving…" : "Save"}
+                onClick={() => saveName.mutate(nameDraft ?? m.display_name ?? "")}
+                busy={saveName.isPending || nameDraft === null}
+              />
+            </div>
+            <p className="mt-2 text-xs text-ink-muted">
+              {m.display_name_explicit
+                ? "Set for this mailbox."
+                : m.display_name
+                  ? "Inherited from the assigned member — set a value here to override."
+                  : "Not set. Emails go out showing only the address, which reads as automated."}
+            </p>
+          </div>
 
           {/* Actions */}
           <div className="mt-6 flex flex-wrap gap-2">

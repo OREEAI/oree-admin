@@ -124,6 +124,10 @@ export type AdminMailboxDetail = AdminMailbox & {
   created_at: string | null;
   updated_at: string | null;
   metrics: Record<string, number>;
+  /** What recipients see as the sender — resolved (may come from the assigned member). */
+  display_name?: string;
+  /** Only the explicit override, empty when it's falling back. */
+  display_name_explicit?: string;
   bounce_breakdown?: Record<string, number>;
   deliverability_pct?: number | null;
   reputation_bounces?: number;
@@ -142,8 +146,8 @@ export async function GetAdminMailboxDetailApi(id: string): Promise<AdminMailbox
   }
 }
 
-export async function MailboxActionApi(id: string, action: string) {
-  const { data } = await apiClient.post(`/api/admin/mailboxes/${id}/action`, { action });
+export async function MailboxActionApi(id: string, action: string, extra?: Record<string, unknown>) {
+  const { data } = await apiClient.post(`/api/admin/mailboxes/${id}/action`, { action, ...(extra ?? {}) });
   return unwrapApiEnvelope(data);
 }
 
