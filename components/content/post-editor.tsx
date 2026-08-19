@@ -111,6 +111,65 @@ export function PostEditor({ slug }: { slug?: string }) {
     onError: (e) => setError(getApiErrorMessage(e, "Cover upload failed.")),
   });
 
+  // --- Body images -------------------------------------------------------
+  // Writers were hand-typing ![alt](/some-file.jpg) and hoping the file had
+  // been put on the marketing site by someone else. Now the picture is
+  // uploaded from the editor and the Markdown is written for them, so the
+  // reference and the file can never drift apart.
+  //
+  // Same endpoint as the cover: it validates image content-type, caps at 8 MB
+  // and returns an absolute URL, none of which is cover-specific.
+  const bodyImageInputRef = useRef<HTMLInputElement>(null);
+  const [imageBusy, setImageBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  /** Splice text into the body at the caret (or over the selection). */
+  const insertIntoBody = (snippet: string, caretOffset?: number) => {
+    const ta = bodyRef.current;
+    const current = form?.body_mdx ?? "";
+    const start = ta ? ta.selectionStart : current.length;
+    const end = ta ? ta.selectionEnd : current.length;
+    const next = current.slice(0, start) + snippet + current.slice(end);
+    set("body_mdx", next);
+    const caret = start + (caretOffset ?? snippet.length);
+    requestAnimationFrame(() => {
+      ta?.focus();
+      ta?.setSelectionRange(caret, caret);
+    });
+  };
+
+  /** Upload one image and write its Markdown at the caret. */
+  const uploadBodyImage = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setError("That file is not an image.");
+      return;
+    }
+    setError("");
+    setImageBusy(true);
+    try {
+      const url = await UploadCoverApi(file);
+      // Alt text seeded from the filename and left selected-ish via the caret
+      // so the writer can immediately type over it. Alt text matters for SEO
+      // and screen readers, so it starts populated rather than empty.
+      const alt = (file.name || "image").replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim();
+      insertIntoBody(`
+![${alt}](${url})
+`);
+      setNotice("Image uploaded.");
+    } catch (e) {
+      setError(getApiErrorMessage(e, "Image upload failed."));
+    } finally {
+      setImageBusy(false);
+    }
+  };
+
+  /** Upload every image in a drop / paste, in order. */
+  const uploadBodyImages = async (files: File[]) => {
+    for (const f of files.filter((f) => f.type.startsWith("image/"))) {
+      await uploadBodyImage(f);
+    }
+  };
+
   // Hydrate the form once the post loads (edit mode).
   const loaded = postQuery.data;
   if (isEdit && loaded && form === null) {
@@ -277,6 +336,8 @@ export function PostEditor({ slug }: { slug?: string }) {
               taRef={bodyRef}
               value={form.body_mdx}
               onChange={(v) => set("body_mdx", v)}
+              onPickImage={() => bodyImageInputRef.current?.click()}
+              imageBusy={imageBusy}
             />
           </div>
           <div className="mt-1.5 grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -284,14 +345,65 @@ export function PostEditor({ slug }: { slug?: string }) {
               <p className="mb-1.5 font-code text-[0.55rem] font-bold uppercase tracking-[0.2em] text-ink-soft">
                 Write (MDX)
               </p>
-              <textarea
-                ref={bodyRef}
-                value={form.body_mdx}
-                onChange={(e) => set("body_mdx", e.target.value)}
-                onScroll={() => syncScroll("editor")}
-                spellCheck={false}
-                placeholder="# Write your post in Markdown / MDX…"
-                className="h-[36rem] w-full resize-none rounded-lg border border-surface-softer bg-white px-3 py-2 font-mono text-[0.8rem] leading-relaxed text-ink focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
+              <div className="relative">
+                <textarea
+                  ref={bodyRef}
+                  value={form.body_mdx}
+                  onChange={(e) => set("body_mdx", e.target.value)}
+                  onScroll={() => syncScroll("editor")}
+                  // Drop an image straight onto the text and it uploads and
+                  // writes its own Markdown where you dropped it.
+                  onDragOver={(e) => {
+                    if (e.dataTransfer.types.includes("Files")) {
+                      e.preventDefault();
+                      setDragOver(true);
+                    }
+                  }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => {
+                    const files = Array.from(e.dataTransfer.files || []);
+                    if (!files.some((f) => f.type.startsWith("image/"))) return;
+                    e.preventDefault();
+                    setDragOver(false);
+                    void uploadBodyImages(files);
+                  }}
+                  // Screenshots go straight from the clipboard into the post.
+                  onPaste={(e) => {
+                    const files = Array.from(e.clipboardData?.files || []);
+                    if (!files.some((f) => f.type.startsWith("image/"))) return;
+                    e.preventDefault();
+                    void uploadBodyImages(files);
+                  }}
+                  spellCheck={false}
+                  placeholder="# Write your post in Markdown / MDX…"
+                  className={`h-[36rem] w-full resize-none rounded-lg border bg-white px-3 py-2 font-mono text-[0.8rem] leading-relaxed text-ink focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20 ${
+                    dragOver ? "border-coral ring-2 ring-coral/30" : "border-surface-softer"
+                  }`}
+                />
+                {dragOver ? (
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-coral/5">
+                    <span className="rounded-md bg-coral px-3 py-1.5 font-code text-[0.6rem] font-bold uppercase tracking-[0.16em] text-white">
+                      Drop to insert image
+                    </span>
+                  </div>
+                ) : null}
+                {imageBusy ? (
+                  <div className="pointer-events-none absolute bottom-2 right-2 rounded-md bg-ink/80 px-2.5 py-1 font-code text-[0.55rem] font-bold uppercase tracking-[0.16em] text-white">
+                    Uploading…
+                  </div>
+                ) : null}
+              </div>
+              <input
+                ref={bodyImageInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                multiple
+                hidden
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length) void uploadBodyImages(files);
+                  e.target.value = "";
+                }}
               />
             </div>
             <div>
@@ -307,7 +419,9 @@ export function PostEditor({ slug }: { slug?: string }) {
             </div>
           </div>
           <p className="mt-2 text-[0.7rem] text-ink-soft">
-            Use the toolbar to format — or drop in a Stat / Callout / Pull block.
+            Drag an image onto the editor, paste a screenshot, or use the Image
+            button — it uploads and writes the Markdown for you. Use the toolbar
+            to format, or drop in a Stat / Callout / Pull block.
             The preview is an approximation; the live site compiles the full MDX
             on publish.
           </p>
@@ -523,10 +637,14 @@ function MdxToolbar({
   taRef,
   value,
   onChange,
+  onPickImage,
+  imageBusy,
 }: {
   taRef: React.RefObject<HTMLTextAreaElement | null>;
   value: string;
   onChange: (v: string) => void;
+  onPickImage: () => void;
+  imageBusy: boolean;
 }) {
   const run = (fn: EditFn) => {
     const ta = taRef.current;
@@ -593,6 +711,11 @@ function MdxToolbar({
       <Tb label="1. List" title="Numbered list" onClick={() => run(linePrefix("1. "))} />
       <Tb label="❝ Quote" title="Blockquote" onClick={() => run(linePrefix("> "))} />
       <Tb label="Link" title="Insert link" onClick={() => run(link)} />
+      <Tb
+        label={imageBusy ? "Uploading…" : "Image"}
+        title="Upload an image and insert it here (or drag one onto the editor)"
+        onClick={onPickImage}
+      />
       <Tb label="― Divider" title="Horizontal rule" onClick={() => run(insert("\n---\n"))} />
       <Divider />
       <Tb label="+ Stat" title="Insert Stat block" onClick={() => run(insert(STAT_SNIPPET))} />

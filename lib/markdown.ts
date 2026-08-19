@@ -11,9 +11,37 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// Escape, then apply inline markdown (code / bold / italic / links).
+// Attribute-safe: esc() leaves quotes alone, which would break out of src="".
+function escAttr(s: string): string {
+  return esc(s).replace(/"/g, "&quot;");
+}
+
+// Body images are written as plain Markdown but may be stored either as an
+// absolute upload URL (api.oreeai.com/media/…) or as a site-relative path like
+// /cold-outreach-2026.jpg, which is served from the marketing site rather than
+// from the admin console. Resolve the relative case so the preview shows the
+// picture instead of a broken image on admin.oreeai.com.
+const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_ORIGIN || "https://oreeai.com";
+
+function resolveAssetUrl(src: string): string {
+  if (/^https?:\/\//.test(src) || src.startsWith("data:")) return src;
+  return src.startsWith("/") ? SITE_ORIGIN + src : SITE_ORIGIN + "/" + src;
+}
+
+// Escape, then apply inline markdown (images / code / bold / italic / links).
+//
+// Images run FIRST, for two reasons. `![alt](src)` contains `[alt](src)`, so
+// the link rule would otherwise claim it and render "!" followed by a link —
+// which is exactly what the editor used to show instead of the picture. And
+// running before the emphasis rules keeps a URL containing * or _ intact.
 function inline(s: string): string {
   return esc(s)
+    .replace(
+      /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,
+      (_m, alt: string, src: string) =>
+        `<img src="${escAttr(resolveAssetUrl(src.trim()))}" alt="${escAttr(alt)}" loading="lazy" ` +
+        `style="max-width:100%;height:auto;border-radius:10px;margin:14px 0;display:block" />`,
+    )
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>")
