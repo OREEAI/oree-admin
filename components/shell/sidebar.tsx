@@ -65,6 +65,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "System",
     items: [
       { label: "Prompts", href: "/prompts", icon: FiFileText },
+      { label: "Prompt sets", href: "/prompt-sets", icon: FiFileText },
       { label: "Flags", href: "/flags", icon: FiToggleRight },
       { label: "Cleanup", href: "/cleanup", icon: FiTrash2 },
       { label: "Webhooks", href: "/webhooks", icon: FiZap },

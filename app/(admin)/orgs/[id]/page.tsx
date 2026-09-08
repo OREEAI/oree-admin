@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { GetPromptSetsApi } from "@/service/prompts";
 import {
   FiCheckCircle,
   FiCreditCard,
@@ -308,6 +310,8 @@ export default function OrgDetailPage() {
                 </div>
               ))}
             </ListPanel>
+
+            <OrgPromptSetsPanel orgId={orgId} />
           </div>
         </>
       )}
@@ -335,6 +339,42 @@ export default function OrgDetailPage() {
   );
 }
 
+/** This org's bespoke prompt sets (Ben, 5 Sep: prompts live "inside the
+ *  individual org screen"). Authoring happens on /prompt-sets; this panel is
+ *  the org-scoped window into it — what bespoke sets exist, how many seats
+ *  run each, and a link that lands on the editor already filtered here. */
+function OrgPromptSetsPanel({ orgId }: { orgId: string }) {
+  const query = useQuery({
+    queryKey: ["admin-prompt-sets", orgId],
+    queryFn: () => GetPromptSetsApi(orgId),
+  });
+  const sets = query.data ?? [];
+
+  return (
+    <ListPanel
+      title="Prompt sets"
+      count={sets.length}
+      action={
+        <Link
+          href={`/prompt-sets?organization=${orgId}`}
+          className="font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-coral hover:text-coral-700"
+        >
+          Manage
+        </Link>
+      }
+    >
+      {sets.map((s) => (
+        <div key={s.id} className="border-b border-surface-softer/60 px-5 py-2.5 last:border-0">
+          <p className="truncate text-sm font-medium text-ink">{s.name}</p>
+          <p className="mt-0.5 truncate text-xs text-ink-soft">
+            {s.assigned_users} user{s.assigned_users === 1 ? "" : "s"} assigned
+          </p>
+        </div>
+      ))}
+    </ListPanel>
+  );
+}
+
 /** A flush-edged panel of rows, matching the Members table's chrome.
  *
  *  The row count varies wildly between these panels — an org can have 15
@@ -346,15 +386,20 @@ function ListPanel({
   title,
   count,
   children,
+  action,
 }: {
   title: string;
   count: number;
   children: React.ReactNode;
+  action?: React.ReactNode;
 }) {
   return (
     <div className="flex max-h-[26rem] flex-col overflow-hidden rounded-2xl border border-surface-softer bg-white shadow-soft-lift">
-      <p className="shrink-0 border-b border-surface-softer px-6 py-4 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
-        {title} ({count})
+      <p className="flex shrink-0 items-center justify-between border-b border-surface-softer px-6 py-4 font-code text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+        <span>
+          {title} ({count})
+        </span>
+        {action ?? null}
       </p>
       {count === 0 ? (
         <p className="px-6 py-8 text-center text-sm text-ink-soft">
