@@ -67,6 +67,51 @@ export async function GetLeadsStatsApi(): Promise<LeadsStats | null> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Deliverability (Ben, 9 Sep: "bounced undelivered compared to sent for the
+// past 30 and 60 days. Nothing in the admin panel to show me these details").
+//   GET /api/admin/deliverability ?days=30,60
+// Headline bounce numbers are RECEIVER bounces only — send failures (auth/
+// network, never reached a receiver) show in the class breakdown, not the
+// stat. A bounce attributes to a sending domain via the lead's sticky
+// mailbox assignment (a DSN carries no sending address).
+// ---------------------------------------------------------------------------
+
+export type DeliverabilityWindow = {
+  days: number;
+  since: string;
+  sent: number;
+  bounced: number;
+  bounce_rate_pct: number | null;
+  unique_leads_bounced: number;
+  bounce_breakdown: Record<string, number>;
+  per_domain: {
+    domain: string;
+    sent: number;
+    bounced: number;
+    bounce_rate_pct: number | null;
+  }[];
+};
+
+export type DeliverabilityStats = {
+  windows: DeliverabilityWindow[];
+  recent_bounces: {
+    when: string;
+    lead_name: string;
+    lead_email: string;
+    bounce_class: string;
+    bounce_reason: string;
+  }[];
+};
+
+export async function GetDeliverabilityApi(days?: number[]): Promise<DeliverabilityStats> {
+  const { data } = await apiClient.get<DeliverabilityStats | ApiEnvelope<DeliverabilityStats>>(
+    "/api/admin/deliverability",
+    { params: days?.length ? { days: days.join(",") } : undefined },
+  );
+  return unwrapApiEnvelope(data) as DeliverabilityStats;
+}
+
 export type AdminMailbox = {
   id: string;
   email_address: string;

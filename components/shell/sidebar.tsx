@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   FiActivity,
+  FiBarChart2,
   FiDatabase,
   FiFileText,
   FiGlobe,
@@ -51,6 +52,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Mailboxes", href: "/mailboxes", icon: FiMail },
       { label: "Domains", href: "/domains", icon: FiGlobe },
       { label: "Campaigns", href: "/campaigns", icon: FiSend },
+      { label: "Deliverability", href: "/deliverability", icon: FiBarChart2 },
     ],
   },
   {

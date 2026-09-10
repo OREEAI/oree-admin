@@ -11,6 +11,7 @@ export const rqKeys = {
   platformStats: "platform-stats",
   leadsStats: "leads-stats",
   mailboxes: "admin-mailboxes",
+  deliverability: "admin-deliverability",
   domains: "admin-domains",
   campaigns: "admin-campaigns",
 };
