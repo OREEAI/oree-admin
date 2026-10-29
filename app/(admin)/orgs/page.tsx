@@ -10,10 +10,34 @@ import { rqKeys } from "@/utils/constants";
 import { StatusBadge, TierBadge } from "./badges";
 import { Pagination, paginateRows } from "../_components/ui";
 
+// Null is meaningful on this screen rather than missing: an org with no
+// last_active_at has never been used by anybody, so it reads "never"
+// rather than a dash.
+function fmtDate(iso?: string | null, empty = "—") {
+  if (!iso) return empty;
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return empty;
+  }
+}
+
+const SORTS = [
+  { key: "name", label: "Name" },
+  { key: "newest", label: "Newest" },
+  { key: "active", label: "Last active" },
+] as const;
+type SortKey = (typeof SORTS)[number]["key"];
+
 export default function OrgsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sort, setSort] = useState<SortKey>("name");
 
   const orgsQuery = useQuery({
     queryKey: [rqKeys.orgs],
@@ -31,12 +55,30 @@ export default function OrgsPage() {
 
   const orgs = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return all.filter((o) => {
+    const rows = all.filter((o) => {
       if (statusFilter !== "all" && (o.status ?? "").toLowerCase() !== statusFilter) return false;
       if (q && !o.organization_name.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [all, search, statusFilter]);
+    // Newest and least-recently-active both put the row you care about
+    // first. An org nobody has ever used sorts to the end of the active
+    // list rather than the top, because a null is not a recent visit.
+    const ts = (iso?: string | null) => (iso ? new Date(iso).getTime() : null);
+    return [...rows].sort((a, b) => {
+      if (sort === "newest") return (ts(b.created_at) ?? 0) - (ts(a.created_at) ?? 0);
+      if (sort === "active") {
+        const av = ts(a.last_active_at);
+        const bv = ts(b.last_active_at);
+        if (av === null && bv === null) return a.organization_name.localeCompare(b.organization_name);
+        if (av === null) return 1;
+        if (bv === null) return -1;
+        return bv - av;
+      }
+      // localeCompare, not <: the order the console showed was Postgres
+      // collation, so lowercase names jumped to the bottom.
+      return a.organization_name.localeCompare(b.organization_name);
+    });
+  }, [all, search, statusFilter, sort]);
 
   const activeCount = useMemo(
     () => all.filter((o) => (o.status ?? "").toLowerCase() === "active").length,
@@ -73,6 +115,29 @@ export default function OrgsPage() {
             className="w-72 rounded-full border border-surface-softer bg-white py-2 pl-9 pr-4 text-sm placeholder:text-ink-soft/70 focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
           />
         </label>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <span className="font-code text-[0.6rem] font-bold uppercase tracking-[0.18em] text-ink-soft">
+          Sort
+        </span>
+        {SORTS.map((option) => (
+          <button
+            key={option.key}
+            type="button"
+            onClick={() => {
+              setSort(option.key);
+              setPage(1);
+            }}
+            className={`rounded-full px-3 py-1.5 font-code text-[0.6rem] font-bold uppercase tracking-[0.16em] transition-colors ${
+              sort === option.key
+                ? "bg-navy-800 text-white"
+                : "border border-surface-softer bg-white text-ink-muted hover:border-navy-300 hover:text-ink"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
       {statuses.length > 1 ? (
@@ -113,6 +178,8 @@ export default function OrgsPage() {
                 <Th className="pl-6">Organisation</Th>
                 <Th>Tier</Th>
                 <Th>Status</Th>
+                <Th>Signed up</Th>
+                <Th>Last active</Th>
                 <Th className="pr-6 text-right">Actions</Th>
               </tr>
             </thead>
@@ -138,6 +205,10 @@ export default function OrgsPage() {
                   <td className="py-3 pr-4">
                     <StatusBadge status={org.status} />
                   </td>
+                  <td className="py-3 pr-4 text-ink-muted">{fmtDate(org.created_at)}</td>
+                  <td className="py-3 pr-4 text-ink-muted">
+                    {fmtDate(org.last_active_at, "never")}
+                  </td>
                   <td className="py-3 pl-4 pr-6 text-right">
                     <Link
                       href={`/orgs/${org.id}`}
@@ -151,7 +222,7 @@ export default function OrgsPage() {
               ))}
               {orgs.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-ink-soft">
+                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-ink-soft">
                     {search || statusFilter !== "all"
                       ? "No organisations match the current filters."
                       : "No organisations found."}

@@ -6,6 +6,11 @@ export type AdminOrg = {
   organization_name: string;
   tier?: string;
   status?: string;
+  /** Workspace creation, which is signup on the self-serve path. */
+  created_at?: string;
+  /** Last time a PERSON did something: a sign-in, or an audited action of
+   *  theirs. Null means nobody has ever used the account. */
+  last_active_at?: string | null;
 };
 
 // Mirror payments.enums.SubscriptionTierChoices (backend source of truth).
